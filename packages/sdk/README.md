@@ -1,7 +1,8 @@
 # @pochta-chat/sdk
 
-The framework-agnostic client SDK for **Pochta** — a self-hosted, end-to-end-
-encrypted messenger where the relay is a *post office, not an archive*.
+The framework-agnostic client SDK for **[Pochta](https://pochta.uts.qa)** — a
+self-hosted, end-to-end-encrypted messenger where the relay is a *post office, not
+an archive*.
 
 This package is everything a client needs to speak the [Pochta protocol](../../PROTOCOL.md):
 self-owned identity, sign-then-seal E2E crypto, the relay transport + all message

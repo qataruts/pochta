@@ -8,11 +8,14 @@
 with no phone number, no email, no account on someone else's server. Run it for your
 family, your company, or your whole organization, on your own machine.
 
+[![Website](https://img.shields.io/badge/website-pochta.uts.qa-E11D48)](https://pochta.uts.qa)
 [![npm](https://img.shields.io/npm/v/@pochta-chat/sdk?logo=npm&label=%40pochta-chat%2Fsdk&color=cb3837)](https://www.npmjs.com/package/@pochta-chat/sdk)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 ![Elixir](https://img.shields.io/badge/relay-Elixir%20%2F%20Phoenix-4B275F?logo=elixir&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/client-React%20%2F%20TypeScript-3178C6?logo=typescript&logoColor=white)
 ![End-to-end encrypted](https://img.shields.io/badge/encryption-end--to--end-2ea44f)
+
+**[pochta.uts.qa](https://pochta.uts.qa)** · [npm](https://www.npmjs.com/package/@pochta-chat/sdk) · [Protocol](PROTOCOL.md) · [Architecture](ARCHITECTURE.md)
 
 </div>
 

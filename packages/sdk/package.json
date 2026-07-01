@@ -10,7 +10,7 @@
     "url": "git+https://github.com/qataruts/pochta.git",
     "directory": "packages/sdk"
   },
-  "homepage": "https://github.com/qataruts/pochta/tree/main/packages/sdk#readme",
+  "homepage": "https://pochta.uts.qa",
   "bugs": "https://github.com/qataruts/pochta/issues",
   "sideEffects": false,
   "exports": {

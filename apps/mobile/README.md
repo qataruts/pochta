@@ -1,61 +1,54 @@
-# Pochta mobile (Expo / React Native)
+# Pochta mobile (Expo Router)
 
-The Pochta messenger on **iOS and Android**, built on the published
-[`@pochta-chat/sdk`](https://www.npmjs.com/package/@pochta-chat/sdk) — the same
-core the web and desktop apps use. Fork it to ship your own branded app.
+The Pochta messenger on **iOS + Android**, built on the published
+[`@pochta-chat/sdk`](https://www.npmjs.com/package/@pochta-chat/sdk) — the same core
+the web and desktop apps use. **Expo SDK 57 · Expo Router · English/Arabic (RTL).**
+Fork it to ship your own branded app.
 
 ## Status
 
-- ✅ **Onboarding + messenger scaffolded and type-clean** — create/restore a
-  self-owned identity into an **encrypted vault**, connect to a relay, add contacts
-  by invite, and chat. Reuses the same SDK `Client` as the web app. `tsc` passes
-  against RN/Expo/SDK types (run it on a device/simulator to see it live).
-- ✅ **Dual language (English + Arabic, RTL)** — every string lives in `src/i18n.tsx`.
-- ⏭️ **Next:** voice/video via `react-native-webrtc` (needs a dev build), media,
-  push, and keychain-derived MMKV encryption.
+- ✅ **Onboarding + messenger, type-clean** — create/restore a self-owned identity
+  into an encrypted vault, connect to a relay, add contacts by invite, and chat.
+  Reuses the SDK `Client`. `tsc` passes against Expo/RN/SDK types (run on a
+  device/simulator to see it live).
+- ✅ **Dual language (English + Arabic, RTL)** via i18next — strings in `locales/`.
+- ⏭️ **Next:** voice/video via `react-native-webrtc` (dev build), media, push,
+  keychain-derived MMKV key.
 
-## Structure (atomic / modular)
+## Structure (Expo Router + atomic)
 
-Small, single-purpose files — no monolith screens:
+File-based routing with route groups; small, single-purpose files.
 
 ```
-App.tsx              thin root: LanguageProvider + identity gate
-src/
-  theme.ts           design tokens (colors, spacing)
-  i18n.tsx           en/ar dictionaries + RTL (the only place strings live)
-  ui.tsx             atoms: Screen, Button, Input, Title, Link, …
-  components/        MessageBubble · Composer · ContactRow · TopBar
-  hooks/useMessenger.ts   all SDK Client wiring + state (no UI)
-  screens/           Welcome · Unlock · RelaySetup · Contacts · Chat · Messenger
-  adapters.ts        MMKV-backed KVStore + Store for the SDK
+app/                       Expo Router routes
+  _layout.tsx              root: crypto polyfill + i18n init + providers + Stack
+  index.tsx                entry gate → onboarding or messenger
+  onboarding/              welcome.tsx · unlock.tsx  (+ _layout)
+  (main)/                  auth-guarded group (MessengerProvider)
+    chats.tsx              relay setup / contact list
+    chat/[pubkey].tsx      a conversation
+components/
+  ui/                      atoms: Screen · Button · Input · Text · Link
+  MessageBubble · Composer · ContactRow        feature components
+contexts/                  AuthContext (session) · MessengerContext (SDK Client)
+locales/                   en.json · ar.json · i18n.ts · useLocales.ts
+services/storage.ts        MMKV-backed KVStore + Store + query helpers for the SDK
+constants/theme.ts         design tokens
 ```
-
-## How it's wired
-
-| SDK port | Native adapter | Why |
-|---|---|---|
-| `KVStore` (identity vault + device id) | **MMKV** ([`src/adapters.ts`](src/adapters.ts)) | the SDK vault is synchronous; MMKV is a fast, synchronous, encrypted store |
-| `Store` (message/contact history) | MMKV JSON (first cut) | swap in `expo-sqlite` for large histories |
-| `crypto.getRandomValues` | `react-native-get-random-values` (in [`index.js`](index.js)) | the SDK's only host requirement |
-
-`TextEncoder`/`TextDecoder` are built into Hermes on Expo SDK 52 / RN 0.76. Calls
-will need `react-native-webrtc` + camera/mic permissions (already declared in
-`app.json`).
 
 ## Run it
 
 ```sh
 cd apps/mobile
 npm install
-npx expo run:ios       # or: npx expo run:android   (a dev build — MMKV/WebRTC are native)
+npx expo run:ios      # or: npx expo run:android   (a dev build — MMKV/WebRTC are native)
 ```
 
-> This app consumes `@pochta-chat/sdk` from **npm** (not the workspace), so it's a
-> clean, forkable starting point for your own app. Point it at your Pochta relay in
-> the messenger screen (coming next).
+On first launch: create an account, then enter your Pochta relay address. Identity
+and history stay on the device.
 
 ## Security note
 
-The MMKV `encryptionKey` here is a constant for the scaffold. Before shipping,
-derive it from the OS keychain (`expo-secure-store` / iOS Keychain / Android
-Keystore) so the on-device store is protected by the platform's hardware-backed key.
+The MMKV `encryptionKey` in `services/storage.ts` is a constant for now — before
+shipping, derive it from the OS keychain (iOS Keychain / Android Keystore) so the
+on-device store is protected by a hardware-backed key.

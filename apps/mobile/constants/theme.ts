@@ -1,4 +1,4 @@
-// Design tokens — the single source of truth for colors across every screen.
+// Design tokens — the single source of truth for the app's look.
 export const colors = {
   bg: "#0b0d12",
   panel: "#12151d",

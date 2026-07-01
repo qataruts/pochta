@@ -4,7 +4,8 @@
     "strict": true,
     "jsx": "react-jsx",
     "moduleResolution": "bundler",
-    "lib": ["ESNext", "DOM"]
+    "lib": ["ESNext", "DOM"],
+    "resolveJsonModule": true
   },
-  "include": ["**/*.ts", "**/*.tsx"]
+  "include": ["**/*.ts", "**/*.tsx", "expo-env.d.ts", ".expo/types/**/*.ts"]
 }

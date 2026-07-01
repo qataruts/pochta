@@ -1,8 +1,8 @@
 import { Pressable, StyleSheet, Text } from "react-native";
 import type { StoredContact } from "@pochta-chat/sdk";
-import { colors } from "../theme";
+import { colors } from "../constants/theme";
 
-export default function ContactRow({
+export function ContactRow({
   contact,
   onPress,
 }: {

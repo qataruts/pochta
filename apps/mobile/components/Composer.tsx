@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
-import { colors, radius } from "../theme";
-import { useI18n } from "../i18n";
+import { colors, radius } from "../constants/theme";
+import { useLocales } from "../locales";
 
-export default function Composer({ onSend }: { onSend: (text: string) => void }) {
-  const { t } = useI18n();
+export function Composer({ onSend }: { onSend: (text: string) => void }) {
+  const { t } = useLocales();
   const [text, setText] = useState("");
   const send = () => {
     const v = text.trim();
@@ -17,14 +17,14 @@ export default function Composer({ onSend }: { onSend: (text: string) => void })
     <View style={s.row}>
       <TextInput
         style={s.input}
-        placeholder={t("message")}
+        placeholder={t("chat.message")}
         placeholderTextColor={colors.muted}
         value={text}
         onChangeText={setText}
         onSubmitEditing={send}
       />
       <Pressable style={s.btn} onPress={send}>
-        <Text style={s.btnText}>{t("send")}</Text>
+        <Text style={s.btnText}>{t("chat.send")}</Text>
       </Pressable>
     </View>
   );

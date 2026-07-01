@@ -1,27 +1,29 @@
-import { MMKV } from "react-native-mmkv";
-import type { KVStore, Store, StoredContact, StoredMessage, MessageStatus } from "@pochta-chat/sdk";
+import { createMMKV } from "react-native-mmkv";
+import type {
+  KVStore,
+  MessageStatus,
+  Store,
+  StoredContact,
+  StoredMessage,
+} from "@pochta-chat/sdk";
 
 /**
- * Native adapters that plug the (platform-agnostic) SDK into React Native.
- *
- * The SDK's `KVStore` is synchronous, so we back it with MMKV (fast, synchronous,
- * and encrypted at rest) rather than the async AsyncStorage/SecureStore. The same
- * MMKV instance backs a simple `Store` for message/contact history — enough to run
- * the messenger; swap in expo-sqlite for large histories later.
+ * On-device storage — the native adapters that plug the platform-agnostic SDK
+ * into React Native. MMKV is synchronous (which the SDK's KVStore needs) and
+ * encrypted at rest. It backs both the identity vault (KVStore) and a first-cut
+ * message/contact Store; swap in expo-sqlite for large histories later.
  */
 
-// Encrypted key-value store. (In production, derive the encryptionKey from the
-// device keychain instead of a constant — see the README.)
-const mmkv = new MMKV({ id: "pochta", encryptionKey: "pochta-mmkv-v1" });
+// TODO(security): derive the encryptionKey from the OS keychain before shipping.
+const mmkv = createMMKV({ id: "pochta", encryptionKey: "pochta-mmkv-v1" });
 
-/** KVStore for the SDK identity vault + device id. */
+/** KVStore for the SDK identity vault + device id + app settings (language, relay). */
 export const kv: KVStore = {
   getItem: (k) => mmkv.getString(k) ?? null,
   setItem: (k, v) => mmkv.set(k, v),
-  removeItem: (k) => mmkv.delete(k),
+  removeItem: (k) => mmkv.remove(k),
 };
 
-// --- a minimal Store over MMKV (JSON blobs keyed by id) --------------------
 const MSG = (id: string) => `msg:${id}`;
 const CONTACT = (pk: string) => `contact:${pk}`;
 const readJSON = <T>(k: string): T | undefined => {
@@ -29,6 +31,7 @@ const readJSON = <T>(k: string): T | undefined => {
   return s ? (JSON.parse(s) as T) : undefined;
 };
 
+/** The SDK persistence port (the client's write-ops). */
 export const store: Store = {
   async addMessage(m) {
     mmkv.set(MSG(m.id), JSON.stringify(m));
@@ -58,14 +61,15 @@ export const store: Store = {
     return true;
   },
   async removeStoredMessage(id) {
-    mmkv.delete(MSG(id));
+    mmkv.remove(MSG(id));
   },
   async applyReaction(id, emoji, reactor, remove) {
     const m = readJSON<StoredMessage>(MSG(id));
     if (!m) return false;
     const reactions = { ...(m.reactions ?? {}) };
     const set = new Set(reactions[emoji] ?? []);
-    remove ? set.delete(reactor) : set.add(reactor);
+    if (remove) set.delete(reactor);
+    else set.add(reactor);
     if (set.size) reactions[emoji] = [...set];
     else delete reactions[emoji];
     mmkv.set(MSG(id), JSON.stringify({ ...m, reactions }));
@@ -74,15 +78,13 @@ export const store: Store = {
   async upsertContact(c: StoredContact) {
     mmkv.set(CONTACT(c.pubkey), JSON.stringify(c));
   },
-  // Media cache: a first cut keeps blobs out of MMKV; wire expo-file-system next.
   async cacheMedia() {},
   async getCachedMedia() {
     return undefined;
   },
 };
 
-// --- UI query helpers (synchronous reads for the messenger screen) ----------
-// The SDK `Store` only exposes the client's write-ops; the UI reads history here.
+// --- synchronous UI query helpers (the SDK Store only exposes write-ops) ------
 
 export function getContacts(): StoredContact[] {
   return mmkv
@@ -100,9 +102,4 @@ export function getMessages(contact: string): StoredMessage[] {
     .map((k) => readJSON<StoredMessage>(k))
     .filter((m): m is StoredMessage => !!m && m.contact === contact)
     .sort((a, b) => a.ts - b.ts);
-}
-
-export function lastMessage(contact: string): StoredMessage | undefined {
-  const all = getMessages(contact);
-  return all[all.length - 1];
 }

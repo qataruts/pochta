@@ -1,13 +1,13 @@
 import { StyleSheet, Text, View } from "react-native";
 import type { StoredMessage } from "@pochta-chat/sdk";
-import { colors, radius } from "../theme";
-import { useI18n } from "../i18n";
+import { colors, radius } from "../constants/theme";
+import { useLocales } from "../locales";
 
-export default function MessageBubble({ msg }: { msg: StoredMessage }) {
-  const { t } = useI18n();
+export function MessageBubble({ msg }: { msg: StoredMessage }) {
+  const { t } = useLocales();
   return (
     <View style={[s.bubble, msg.mine ? s.mine : s.theirs]}>
-      <Text style={s.text}>{msg.deleted ? `🚫 ${t("deleted")}` : msg.text}</Text>
+      <Text style={s.text}>{msg.deleted ? `🚫 ${t("chat.deleted")}` : msg.text}</Text>
     </View>
   );
 }

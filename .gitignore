@@ -5,6 +5,9 @@ apps/web/.vite/
 packages/*/dist/
 *.local
 
+# Desktop (Electron) build output
+apps/desktop/out/
+
 # Elixir / Phoenix
 apps/server/_build/
 apps/server/deps/

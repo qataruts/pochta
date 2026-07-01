@@ -1,0 +1,27 @@
+{
+  "name": "pochta-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pochta desktop app — the messenger as a native window (Electron, for reliable WebRTC calls on Windows/macOS/Linux).",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "POCHTA_DEV_URL=http://localhost:5180 electron .",
+    "build:web": "pnpm --filter web build",
+    "dist": "pnpm --filter web build && electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^33.3.1",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "qa.uts.pochta",
+    "productName": "Pochta",
+    "directories": { "output": "out", "buildResources": "build" },
+    "files": ["main.js", "preload.js", "build/icon.png"],
+    "extraResources": [{ "from": "../web/dist", "to": "web" }],
+    "mac": { "category": "public.app-category.social-networking", "target": ["dmg"] },
+    "win": { "target": ["nsis"] },
+    "linux": { "target": ["AppImage"], "category": "Network" }
+  }
+}

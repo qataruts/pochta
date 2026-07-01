@@ -155,27 +155,58 @@ receipts and typing · presence · edit / delete / reactions / replies · images
 notes and files · 1:1 voice/video calls · one-command self-hosting · signed
 relay-to-relay federation · private/guarded (org/gov) modes · a friendly admin web panel.
 
-**Planned:** double-click desktop installers · native mobile apps and push · per-device
-keys and forward secrecy · group chat · TURN for tricky networks · human-friendly
-`@handles`.
+**Frontends:** web (done) · desktop ([Electron](apps/desktop), for reliable WebRTC —
+scaffolded) · mobile (Expo/React Native — planned). All three are thin shells over
+the same [`@pochta-chat/sdk`](packages/sdk), so anyone can build their own too.
+
+**Planned:** package the desktop/mobile apps · a double-click server runner · self-host
+TURN (coturn) for strict NATs · mobile push · per-device keys and forward secrecy ·
+group chat · human-friendly `@handles`.
 
 ---
 
 ## <a id="self-hosting"></a>Deployment reference
 
 <details>
-<summary><b>Without Docker (mix release)</b></summary>
+<summary><b>Without Docker (self-contained release + one launcher)</b></summary>
 
-`pnpm build` bundles the client into the relay; run `mix phx.server` (dev) or a
-self-contained `mix release` (prod — no Elixir/Node needed to run it).
+`pnpm build` bundles the client into the relay; a `mix release` produces a
+**self-contained folder (~33 MB) that runs with no Elixir or Node installed.**
+Build it once (needs Elixir), then a regular host just runs the launcher — it
+generates + persists a secret and keeps all data in one folder:
 
 ```sh
-cd apps/server && MIX_ENV=prod mix release
-SECRET_KEY_BASE=$(mix phx.gen.secret) PHX_SERVER=true PORT=4000 \
-  PHX_HOST=chat.example.com DATABASE_PATH=/data/chat.db \
-  _build/prod/rel/pochta/bin/pochta start
-# put a TLS reverse proxy (Caddy/nginx) in front — WebRTC/media need HTTPS off-localhost
+cd apps/server && MIX_ENV=prod mix release      # → _build/prod/rel/pochta (copy this anywhere)
+
+# run it — no Elixir/Node needed on the target machine:
+./scripts/pochta-server.sh                       # http://localhost:4000, data in ~/.pochta
+PORT=8080 ADMIN_TOKEN=$(openssl rand -hex 16) ./scripts/pochta-server.sh   # admin panel on
+#   Windows: scripts\pochta-server.bat
 ```
+
+Put a TLS reverse proxy (Caddy/nginx) in front for anything off-localhost — WebRTC
+and media need HTTPS.
+</details>
+
+<details>
+<summary><b>Do I need STUN/TURN servers for calls?</b></summary>
+
+The relay handles **signaling** (offer/answer/ICE, sealed) — that part needs
+nothing extra. The actual call **media** is peer-to-peer WebRTC, so:
+
+- **Same LAN / air-gapped** — nothing needed; peers connect via local candidates
+  (verified: calls connect with `ice_servers: []`).
+- **Across the internet** — you need a **STUN** server so peers discover their
+  public address. It's tiny; use a public one or self-host **coturn**.
+- **Strict / cellular / symmetric NAT (~10–20% of networks)** — direct P2P fails,
+  so you need a **TURN** server (coturn) to relay the encrypted media. This is the
+  current gap; without TURN those specific calls won't connect.
+
+The Pochta relay does **not** itself speak STUN/TURN — that's separate WebRTC infra
+(**coturn**), which the *same host* can run. The relay just advertises whatever you
+configure via `GET /config` (`config :pochta, :ice_servers, [...]`), so nothing is
+hardcoded to the outside world.
+</details>
 
 Storage is SQLite by default (plug-and-play); set `ecto_adapter` to Postgres for a
 large relay — same code, no changes.

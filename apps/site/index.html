@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pochta — your mail, not their archive</title>
+<meta name="description" content="A private, end-to-end-encrypted messenger you actually own. No phone number, no email, no account on someone else's server. Self-host it for your family, company, or organization.">
+<link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+<meta property="og:title" content="Pochta — your mail, not their archive">
+<meta property="og:description" content="A private, end-to-end-encrypted messenger you actually own. Self-hosted, no accounts, no archive.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://pochta.uts.qa">
+<style>
+  :root{
+    --red:#E11D48; --red-2:#FB5A73; --ink:#0b0d12; --panel:#12151d;
+    --panel-2:#171b25; --line:#242a37; --txt:#e8eaf0; --muted:#9aa2b4;
+    --radius:16px; --max:1080px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:var(--ink);color:var(--txt);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:var(--max);margin:0 auto;padding:0 24px}
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;border-radius:12px;padding:12px 20px;
+    font-weight:650;font-size:15px;border:1px solid transparent;cursor:pointer;transition:.15s;
+  }
+  .btn-primary{background:var(--red);color:#fff}
+  .btn-primary:hover{background:#c81840;transform:translateY(-1px)}
+  .btn-ghost{border-color:var(--line);color:var(--txt);background:#0e1118}
+  .btn-ghost:hover{border-color:#3a4256;background:var(--panel)}
+  .muted{color:var(--muted)}
+  .accent{color:var(--red-2)}
+  code,pre{font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace}
+
+  /* header */
+  header{position:sticky;top:0;z-index:20;background:rgba(11,13,18,.72);
+    backdrop-filter:saturate(160%) blur(12px);border-bottom:1px solid var(--line)}
+  .nav{display:flex;align-items:center;justify-content:space-between;height:64px}
+  .brand{display:flex;align-items:center;gap:12px;font-weight:800;font-size:20px;letter-spacing:-.02em}
+  .brand img{width:34px;height:34px;border-radius:9px}
+  .nav-links{display:flex;align-items:center;gap:28px;font-size:15px}
+  .nav-links a.muted:hover{color:var(--txt)}
+  @media(max-width:720px){.nav-links a:not(.cta){display:none}}
+
+  /* hero */
+  .hero{position:relative;text-align:center;padding:96px 0 72px;overflow:hidden}
+  .hero::before{content:"";position:absolute;inset:-20% 0 auto 0;height:520px;z-index:-1;
+    background:radial-gradient(60% 60% at 50% 0%, rgba(225,29,72,.22), transparent 70%)}
+  .hero img.mark{width:96px;height:96px;border-radius:24px;box-shadow:0 20px 60px rgba(225,29,72,.35)}
+  .hero h1{font-size:clamp(38px,6vw,68px);line-height:1.04;letter-spacing:-.03em;margin:26px 0 8px;font-weight:820}
+  .hero .sub{font-size:clamp(17px,2.4vw,21px);max-width:640px;margin:0 auto 30px;color:var(--muted)}
+  .cta-row{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+  .badges{margin-top:26px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;opacity:.9}
+  .badges img{height:22px}
+
+  section{padding:72px 0;border-top:1px solid var(--line)}
+  .eyebrow{color:var(--red-2);font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:13px}
+  h2{font-size:clamp(26px,4vw,38px);letter-spacing:-.02em;margin:8px 0 14px;font-weight:780}
+  .lead{color:var(--muted);max-width:720px;font-size:18px}
+
+  .grid{display:grid;gap:18px;margin-top:36px}
+  .cols-3{grid-template-columns:repeat(3,1fr)}
+  .cols-2{grid-template-columns:repeat(2,1fr)}
+  @media(max-width:860px){.cols-3,.cols-2{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:24px}
+  .card h3{margin:0 0 8px;font-size:18px}
+  .card p{margin:0;color:var(--muted);font-size:15px}
+  .card .ic{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;
+    background:rgba(225,29,72,.12);color:var(--red-2);margin-bottom:14px}
+  .card .ic svg{width:20px;height:20px}
+
+  .steps{counter-reset:s;display:grid;gap:16px;margin-top:36px}
+  .cols-3 .step{}
+  .step{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:24px;position:relative}
+  .step::before{counter-increment:s;content:counter(s);position:absolute;top:-14px;left:24px;
+    width:32px;height:32px;border-radius:9px;background:var(--red);color:#fff;font-weight:800;
+    display:grid;place-items:center;font-size:15px}
+  .step h3{margin:10px 0 6px;font-size:17px}
+  .step p{margin:0;color:var(--muted);font-size:15px}
+
+  pre{background:#0a0c11;border:1px solid var(--line);border-radius:14px;padding:20px 22px;
+    overflow:auto;font-size:13.5px;line-height:1.7;color:#d8deea}
+  pre .c{color:#6b7488}
+  pre .k{color:#fb7185}
+  .two{display:grid;grid-template-columns:1.1fr 1fr;gap:32px;align-items:center}
+  @media(max-width:860px){.two{grid-template-columns:1fr}}
+
+  .check li{list-style:none;padding-left:30px;position:relative;margin:12px 0;color:var(--muted)}
+  .check li b{color:var(--txt)}
+  .check li::before{content:"";position:absolute;left:0;top:6px;width:16px;height:16px;border-radius:5px;
+    background:rgba(34,197,94,.15)}
+  .check li.warn::before{background:rgba(234,179,8,.15)}
+  .check li::after{content:"";position:absolute;left:5px;top:9px;width:5px;height:9px;
+    border:2px solid #22c55e;border-top:0;border-left:0;transform:rotate(40deg)}
+  .check li.warn::after{content:"!";border:0;left:6.5px;top:5px;color:#eab308;font-weight:800;font-size:12px}
+
+  footer{border-top:1px solid var(--line);padding:40px 0;color:var(--muted);font-size:14px}
+  .foot{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;align-items:center}
+  .foot a{color:var(--muted)}.foot a:hover{color:var(--txt)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a class="brand" href="#top"><img src="assets/logo.svg" alt="">Pochta</a>
+    <nav class="nav-links">
+      <a class="muted" href="#why">Why</a>
+      <a class="muted" href="#features">Features</a>
+      <a class="muted" href="#host">Self-host</a>
+      <a class="muted" href="#devs">Developers</a>
+      <a class="btn btn-ghost cta" href="https://github.com/qataruts/pochta">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<a id="top"></a>
+<div class="hero">
+  <div class="wrap">
+    <img class="mark" src="assets/logo.svg" alt="Pochta">
+    <h1>Your mail,<br>not their archive.</h1>
+    <p class="sub">A private, end-to-end-encrypted messenger you actually own — no phone
+      number, no email, no account on someone else's server. Run it for your family, your
+      company, or your whole organization.</p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="#host">Host your own →</a>
+      <a class="btn btn-ghost" href="https://github.com/qataruts/pochta">View the code</a>
+    </div>
+    <div class="badges">
+      <img src="https://img.shields.io/npm/v/@pochta-chat/sdk?logo=npm&label=%40pochta-chat%2Fsdk&color=cb3837" alt="npm">
+      <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT">
+      <img src="https://img.shields.io/badge/encryption-end--to--end-2ea44f" alt="E2E encrypted">
+    </div>
+  </div>
+</div>
+
+<section id="why">
+  <div class="wrap">
+    <div class="eyebrow">The idea</div>
+    <h2>A post office, not an archive.</h2>
+    <p class="lead">Pochta (почта — Russian for <em>post office</em>) carries your sealed
+      messages, delivers them, and forgets them. It never reads them, never keeps a
+      history, and never knows who you are — because your account isn't a row in its
+      database. It's a key on your device. Every mainstream messenger puts a company in
+      the middle. Pochta removes it.</p>
+  </div>
+</section>
+
+<section id="features">
+  <div class="wrap">
+    <div class="eyebrow">Why it's different</div>
+    <h2>Private by design, yours by default.</h2>
+    <div class="grid cols-3">
+      <div class="card"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><h3>Truly end-to-end</h3><p>Every message is signed by you and sealed to the recipient. The server only ever sees ciphertext — it can't read your chats, even if compelled.</p></div>
+      <div class="card"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2 21 2m-5 5 3 3m-6-1 3 3"/></svg></div><h3>You own your identity</h3><p>Your account is a cryptographic key created on your device, backed up by 12 words. No email, no password, nothing to leak.</p></div>
+      <div class="card"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5"/></svg></div><h3>Anyone can host it</h3><p>The whole server is one small program you run on a spare PC, a Mac, or a NAS. Your people run their own Pochta, off the global network.</p></div>
+      <div class="card"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></div><h3>No archive</h3><p>Your history lives on your devices. The server keeps sealed messages only until they're delivered, then deletes them.</p></div>
+      <div class="card"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 2.5 15.3 0 18M12 3c-2.5 2.7-2.5 15.3 0 18"/></svg></div><h3>Federated, not central</h3><p>Different self-hosted Pochta servers reach each other — signed and origin-verified — so separate islands become a network with no central authority.</p></div>
+      <div class="card"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m5.6 5.6 12.8 12.8"/></svg></div><h3>No blockchain, no tracking</h3><p>Just proven public-key cryptography and a plain, honest post-office model. Nothing to mine, nothing to sell.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">Everything you expect</div>
+    <h2>A real messenger.</h2>
+    <div class="grid cols-2">
+      <div class="card"><h3>Chat, done right</h3><p>Sent · delivered · read receipts, typing indicators, replies, emoji reactions, and edit / delete-for-everyone — consistent across all your devices.</p></div>
+      <div class="card"><h3>Calls &amp; media</h3><p>1:1 voice and video, peer-to-peer. Share photos, voice notes, and files — encrypted on your device before they ever leave it.</p></div>
+      <div class="card"><h3>Every device, in sync</h3><p>Link a phone or laptop with your 12 words. Sent and received messages sync across all of them, with offline catch-up.</p></div>
+      <div class="card"><h3>Presence</h3><p>See who's online and who was last seen — without handing your status to a third party.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <div class="eyebrow">How it works</div>
+    <h2>Three steps, no sign-up form.</h2>
+    <div class="steps grid cols-3">
+      <div class="step"><h3>Make an account</h3><p>The app generates your key and shows you 12 backup words. That's it — no phone number, no email.</p></div>
+      <div class="step"><h3>Share an invite</h3><p>Send a link or QR code. Whoever opens it can message you. Discovery rides in the invite; there's no central directory.</p></div>
+      <div class="step"><h3>Point at your server</h3><p>The one your family or company runs. Visiting its URL just works; messages relay through it, sealed, to your devices.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="host">
+  <div class="wrap two">
+    <div>
+      <div class="eyebrow">Run your own</div>
+      <h2>One command to host it.</h2>
+      <p class="lead">One Docker image bundles the app, the relay, and its storage — no
+        Elixir, Node, or database to install. Runs on Windows, macOS, or Linux.</p>
+      <p class="lead" style="margin-top:14px">Need a sealed, invite-only network for a
+        company or organization? The same image does it with three environment variables —
+        only enrolled people connect, and nothing leaks out.</p>
+    </div>
+    <pre><span class="c"># build once, run anywhere Docker runs</span>
+docker build -t pochta-relay .
+docker run -p 4000:4000 -v pochta-data:/data \
+  -e SECRET_KEY_BASE=$(openssl rand -base64 48) \
+  pochta-relay
+
+<span class="c"># → open http://localhost:4000</span>
+<span class="c">#   you're running your own messenger.</span></pre>
+  </div>
+</section>
+
+<section id="security">
+  <div class="wrap">
+    <div class="eyebrow">Honest about security</div>
+    <h2>Trust comes from being straight about the limits.</h2>
+    <ul class="check lead" style="max-width:820px">
+      <li><b>Content is end-to-end encrypted</b> (Ed25519 + X25519 + XChaCha20-Poly1305, via audited libraries). The relay holds only ciphertext.</li>
+      <li><b>Self-contained and auditable</b> — open source, no required external calls, you own every component.</li>
+      <li class="warn"><b>The server operator sees metadata</b> — who talks to whom, and when. When you are the operator, that's your own server — but it isn't anonymity from the operator.</li>
+      <li class="warn"><b>"100% secure" isn't a real claim</b> — a stolen device or lost passphrase is out of our hands, and formal certification is a process beyond the code.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="devs">
+  <div class="wrap two">
+    <div>
+      <div class="eyebrow">For developers</div>
+      <h2>Build on the same core.</h2>
+      <p class="lead">Pochta's client is a real, reusable SDK — so you can build your own
+        app (mobile, desktop, a bot) on the same E2E core, or put your own frontend on the
+        backend. It ships no UI and no database; you inject those.</p>
+      <div class="cta-row" style="margin-top:22px">
+        <a class="btn btn-ghost" href="https://www.npmjs.com/package/@pochta-chat/sdk">npm: @pochta-chat/sdk</a>
+        <a class="btn btn-ghost" href="https://github.com/qataruts/pochta/blob/main/PROTOCOL.md">Protocol spec</a>
+      </div>
+    </div>
+    <pre><span class="k">npm</span> i @pochta-chat/sdk
+
+<span class="c">// self-owned identity + E2E crypto + transport,</span>
+<span class="c">// storage and UI injected by you.</span>
+<span class="k">import</span> { createIdentity, Client } <span class="k">from</span> <span style="color:#a5d6a7">"@pochta-chat/sdk"</span>;</pre>
+  </div>
+</section>
+
+<section>
+  <div class="wrap" style="text-align:center">
+    <h2>Your messenger. Your server. Your keys.</h2>
+    <p class="lead" style="margin:0 auto 26px">Free and open source. Stand one up this
+      weekend for the people you actually trust.</p>
+    <div class="cta-row" style="justify-content:center">
+      <a class="btn btn-primary" href="https://github.com/qataruts/pochta">Get started on GitHub →</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot">
+    <a class="brand" href="#top" style="font-size:17px"><img src="assets/logo.svg" width="26" height="26" style="border-radius:7px" alt="">Pochta</a>
+    <div style="display:flex;gap:22px;flex-wrap:wrap">
+      <a href="https://github.com/qataruts/pochta">GitHub</a>
+      <a href="https://www.npmjs.com/package/@pochta-chat/sdk">npm</a>
+      <a href="https://github.com/qataruts/pochta/blob/main/PROTOCOL.md">Protocol</a>
+      <a href="https://github.com/qataruts/pochta/blob/main/LICENSE">MIT License</a>
+    </div>
+    <span>© Emad Jumaah · почта</span>
+  </div>
+</footer>
+
+</body>
+</html>

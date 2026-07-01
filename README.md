@@ -9,7 +9,8 @@ only until delivery, then forgets them.
 > the product and suggest improvements. Detailed phase history lives in
 > [ROADMAP.md](ROADMAP.md); the client/relay wire contract is in
 > [PROTOCOL.md](PROTOCOL.md); the reusable client SDK is
-> [`@pochta-chat/sdk`](apps/web/src/sdk).
+> [`@pochta-chat/sdk`](packages/sdk) (published on
+> [npm](https://www.npmjs.com/package/@pochta-chat/sdk)).
 
 A WhatsApp-style chat + voice/video app where **your content stays end-to-end
 encrypted**, **your account belongs to you (a keypair, not an email/company)**,
@@ -122,14 +123,15 @@ path. Calls then establish direct WebRTC media.
 ## Repo map
 
 ```
-apps/web/src/
-  sdk/            @pochta-chat/sdk — framework- & storage-agnostic client core:
+packages/sdk/     @pochta-chat/sdk — framework- & storage-agnostic client core
+  src/            (published to npm; the web app consumes it via alias)
     crypto.ts       seal()/open() — sign-then-seal (pure)
     identity.ts     keys, 12-word phrase, Vault(kv) — encrypted vault + device id
     client.ts       the messaging client (socket, inbox, all ops, calls); injects Store+URLs
     blobs.ts        media encrypt+upload / download+decrypt
     invite.ts enroll.ts protocol.ts types.ts   invites, private-relay enroll, wire consts, model+Store port
     index.ts        barrel export
+apps/web/src/
   lib/            thin BROWSER bindings over the SDK (keep the app's imports stable):
     identity.ts     Vault(localStorage)
     db.ts           IndexedDB (encrypted at rest) implementing the SDK `Store`

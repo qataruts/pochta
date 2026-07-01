@@ -10,9 +10,9 @@ signaling, and encrypted media. It ships **no storage engine and no UI** — you
 inject those — so the same core runs a web app, a desktop/mobile app, or a
 headless bot.
 
-> **v0.1 status:** a workspace package (`packages/sdk`) consumed by the web app via
-> the `@pochta-chat/sdk` alias to its TypeScript source. Publishing to npm under the
-> reserved `@pochta-chat` org just needs a build step — see `package.json`.
+> **Published on npm** as `@pochta-chat/sdk` (ESM + type declarations, built with
+> tsup). Also a workspace package (`packages/sdk`) that the in-repo web app consumes
+> via a `@pochta-chat/sdk` alias to its TypeScript source. `npm i @pochta-chat/sdk`.
 
 ## What you inject
 

@@ -534,15 +534,15 @@ no UI**. A host injects a `Store` (durable history), a `KVStore` (the account
 vault), the relay URLs, and `ClientEvents`. So the same core runs our web app, a
 future desktop/mobile app, or a headless bot; any third party builds *their own*
 app against it cheaply, E2E intact (the Twilio/Stream/Sendbird "infra + SDK"
-shape). **Verified:** our web app was refactored to consume the SDK via the
-`@pochta-chat/sdk` alias with zero UI changes (thin browser bindings supply
-IndexedDB + localStorage + the relay URLs), and the full browser E2E suite
-(messaging, receipts, at-rest encryption, media cache, reactions, edit/delete,
-multi-device carbons) plus headless crypto/protocol interop still pass. *v0.1
-lives in-repo under `apps/web/src/sdk`; promoting it to a standalone published
-package under the reserved `@pochta-chat` npm org is mechanical (move to
-`packages/sdk`, add a build step, point `exports` at the compiled dist).* Next:
-Swift/Kotlin ports for native mobile. Unlocks *custom* apps, not *existing* ones.
+shape). **Published:** it's a real workspace package at `packages/sdk`, **live on
+npm as [`@pochta-chat/sdk`](https://www.npmjs.com/package/@pochta-chat/sdk)** (v0.1.0,
+ESM + type declarations built with tsup). **Verified:** our web app consumes it via
+the `@pochta-chat/sdk` alias with zero UI changes (thin browser bindings supply
+IndexedDB + localStorage + the relay URLs), the built bundle does a real crypto
+round-trip headlessly, and the full browser E2E suite (messaging, receipts,
+at-rest encryption, media cache, reactions, edit/delete, multi-device carbons)
+plus headless crypto/protocol interop still pass. Next: Swift/Kotlin ports for
+native mobile. Unlocks *custom* apps, not *existing* ones.
 
 ### Path B — A Bot / Integration REST API *(for systems, not humans)*
 A documented REST + WebSocket lane so a company can wire the backend to **their own

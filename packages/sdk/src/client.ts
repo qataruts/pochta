@@ -3,6 +3,7 @@ import { authParams, type Identity } from "./identity";
 import { open, seal, type SealedEnvelope } from "./crypto";
 import { downloadAndDecrypt, encryptAndUpload } from "./blobs";
 import { EVENTS, inboxTopic } from "./protocol";
+import { randomId } from "./util";
 import type {
   Body,
   ClientEvents,
@@ -143,7 +144,7 @@ export class Client {
   ): Promise<StoredMessage | null> {
     const c = this.contacts.get(contact);
     if (!c) return null;
-    const id = crypto.randomUUID();
+    const id = randomId();
     const ts = Date.now();
     this.sealTo(c.pubkey, c.enc, {
       t: "msg",
@@ -183,7 +184,7 @@ export class Client {
 
   setTyping(contact: string, on: boolean): void {
     const c = this.contacts.get(contact);
-    if (c) this.sealTo(c.pubkey, c.enc, { t: "typing", on }, `t-${crypto.randomUUID()}`, true);
+    if (c) this.sealTo(c.pubkey, c.enc, { t: "typing", on }, `t-${randomId()}`, true);
   }
 
   /** Encrypt+upload a file and send it as a media message (E2E; relay can't read it). */
@@ -197,7 +198,7 @@ export class Client {
     const c = this.contacts.get(contact);
     if (!c) return null;
     const { blobId, key } = await encryptAndUpload(this.httpBase, bytes);
-    const id = crypto.randomUUID();
+    const id = randomId();
     const ts = Date.now();
     const m: MediaBody = { blobId, key, mime, mkind, name };
     this.sealTo(c.pubkey, c.enc, {
@@ -280,12 +281,12 @@ export class Client {
 
   // Send an op to the peer AND carbon it to my own account inbox (other devices).
   private emitOp(c: StoredContact, body: Body, tag: string): void {
-    this.sealTo(c.pubkey, c.enc, body, `${tag}-${crypto.randomUUID()}`, false);
+    this.sealTo(c.pubkey, c.enc, body, `${tag}-${randomId()}`, false);
     this.sealTo(
       this.identity.publicKeyHex,
       this.identity.encPublicKeyHex,
       body,
-      `${tag}-carbon-${crypto.randomUUID()}`,
+      `${tag}-carbon-${randomId()}`,
       false,
     );
   }
@@ -315,7 +316,7 @@ export class Client {
   async startCall(contact: string, video: boolean): Promise<void> {
     const c = this.contacts.get(contact);
     if (!c || this.call) return;
-    const callId = crypto.randomUUID();
+    const callId = randomId();
     const localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video });
     const pc = this.newCallPc(c.pubkey, c.enc, callId, localStream);
     this.call = { callId, contact, pc, pendingIce: [], localStream };
@@ -384,7 +385,7 @@ export class Client {
     pc.onicecandidate = (e) => {
       if (e.candidate) {
         this.sealTo(pubkey, enc, { t: "call-ice", callId, candidate: e.candidate.toJSON() },
-          `ice-${callId}-${crypto.randomUUID()}`, true);
+          `ice-${callId}-${randomId()}`, true);
       }
     };
     pc.ontrack = (e) => this.events.onRemoteStream(e.streams[0]);

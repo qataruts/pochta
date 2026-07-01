@@ -1,7 +1,12 @@
 import { ed25519 } from "@noble/curves/ed25519.js";
 import { generateMnemonic, mnemonicToSeedSync, validateMnemonic } from "@scure/bip39";
 import { wordlist } from "@scure/bip39/wordlists/english.js";
+import { pbkdf2 } from "@noble/hashes/pbkdf2.js";
+import { sha256 } from "@noble/hashes/sha2.js";
+import { gcm } from "@noble/ciphers/aes.js";
+import { randomBytes } from "@noble/hashes/utils.js";
 import { deriveEncryptionKey } from "./crypto";
+import { fromBase64, randomId, toBase64 } from "./util";
 
 /**
  * Self-owned identity. Your account IS an Ed25519 keypair generated on this
@@ -19,11 +24,6 @@ const VAULT_KEY = "chat.identity.vault.v1";
 const DEVICE_KEY = "chat.deviceId.v1";
 const PBKDF2_ITERATIONS = 210_000;
 
-const b64 = (b: Uint8Array): string => btoa(String.fromCharCode(...b));
-const ub64 = (s: string): Uint8Array =>
-  Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
-// WebCrypto wants BufferSource; the generic Uint8Array type doesn't line up.
-const bs = (u: Uint8Array): BufferSource => u as unknown as BufferSource;
 
 export interface Identity {
   mnemonic: string; // 12 words — the backup
@@ -101,22 +101,15 @@ export function authParams(id: Identity): {
   return { pubkey: id.publicKeyHex, enc: id.encPublicKeyHex, ts, sig, name: id.name };
 }
 
-// PBKDF2(passphrase, salt) → AES-GCM key that wraps the seed phrase.
-async function deriveKek(passphrase: string, salt: Uint8Array): Promise<CryptoKey> {
-  const base = await crypto.subtle.importKey(
-    "raw",
-    bs(new TextEncoder().encode(passphrase)),
-    "PBKDF2",
-    false,
-    ["deriveKey"],
-  );
-  return crypto.subtle.deriveKey(
-    { name: "PBKDF2", salt: bs(salt), iterations: PBKDF2_ITERATIONS, hash: "SHA-256" },
-    base,
-    { name: "AES-GCM", length: 256 },
-    false,
-    ["encrypt", "decrypt"],
-  );
+// PBKDF2(passphrase, salt) → 32-byte AES-256-GCM key that wraps the seed phrase.
+// Uses @noble (pure JS) instead of WebCrypto so the vault works identically in a
+// browser, Node, and React Native. Output is byte-compatible with the previous
+// WebCrypto vault (same PBKDF2-SHA256 + AES-256-GCM), so old vaults still open.
+function deriveKek(passphrase: string, salt: Uint8Array): Uint8Array {
+  return pbkdf2(sha256, new TextEncoder().encode(passphrase), salt, {
+    c: PBKDF2_ITERATIONS,
+    dkLen: 32,
+  });
 }
 
 /**
@@ -142,19 +135,13 @@ export class Vault {
 
   /** Encrypt the seed phrase under `passphrase` and store only the ciphertext. */
   async persist(id: Identity, passphrase: string): Promise<void> {
-    const salt = crypto.getRandomValues(new Uint8Array(16));
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-    const kek = await deriveKek(passphrase, salt);
-    const ct = new Uint8Array(
-      await crypto.subtle.encrypt(
-        { name: "AES-GCM", iv: bs(iv) },
-        kek,
-        bs(new TextEncoder().encode(id.mnemonic)),
-      ),
-    );
+    const salt = randomBytes(16);
+    const iv = randomBytes(12);
+    const key = deriveKek(passphrase, salt);
+    const ct = gcm(key, iv).encrypt(new TextEncoder().encode(id.mnemonic));
     this.kv.setItem(
       VAULT_KEY,
-      JSON.stringify({ v: 1, salt: b64(salt), iv: b64(iv), ct: b64(ct) }),
+      JSON.stringify({ v: 1, salt: toBase64(salt), iv: toBase64(iv), ct: toBase64(ct) }),
     );
   }
 
@@ -164,15 +151,11 @@ export class Vault {
     if (!raw) return null;
     try {
       const { salt, iv, ct } = JSON.parse(raw);
-      const kek = await deriveKek(passphrase, ub64(salt));
-      const pt = await crypto.subtle.decrypt(
-        { name: "AES-GCM", iv: bs(ub64(iv)) },
-        kek,
-        bs(ub64(ct)),
-      );
-      return identityFromMnemonic(new TextDecoder().decode(new Uint8Array(pt)));
+      const key = deriveKek(passphrase, fromBase64(salt));
+      const pt = gcm(key, fromBase64(iv)).decrypt(fromBase64(ct));
+      return identityFromMnemonic(new TextDecoder().decode(pt));
     } catch {
-      return null; // wrong passphrase → AES-GCM auth failure
+      return null; // wrong passphrase → GCM auth failure throws
     }
   }
 
@@ -183,7 +166,7 @@ export class Vault {
   deviceId(): string {
     let id = this.kv.getItem(DEVICE_KEY);
     if (!id) {
-      id = crypto.randomUUID();
+      id = randomId();
       this.kv.setItem(DEVICE_KEY, id);
     }
     return id;

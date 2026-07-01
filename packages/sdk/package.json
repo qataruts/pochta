@@ -1,6 +1,6 @@
 {
   "name": "@pochta-chat/sdk",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Framework-agnostic client SDK for Pochta — self-owned identity, end-to-end sign-then-seal crypto, relay transport, message ops, calls, and media. Ships no storage engine and no UI; you inject those.",
   "type": "module",
   "license": "MIT",

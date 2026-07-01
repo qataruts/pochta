@@ -19,6 +19,7 @@ export { inviteToken, parseInvite } from "./invite";
 export { enroll } from "./enroll";
 export { PROTOCOL_VERSION, inboxTopic, SOCKET_PATH, EVENTS } from "./protocol";
 export { Client } from "./client";
+export { randomId, toBase64, fromBase64 } from "./util";
 
 // --- types ---
 export type { SealedEnvelope, OpenedMessage } from "./crypto";

@@ -1,4 +1,4 @@
-# Pochta marketing site
+# Pochta marketing website
 
 The landing page for **[pochta.uts.qa](https://pochta.uts.qa)** — a bilingual
 (English + Arabic) marketing site built with **Next.js 15 (App Router)** and
@@ -93,6 +93,6 @@ on its own; use a Next-aware runtime.
 ## Brand
 
 `components/logo.tsx` / `public/logo.svg` / `app/icon.svg` are the Pochta mark:
-the Cyrillic **П** (first letter of *почта*) as a post-office doorway with a mail
+the Cyrillic **П** (first letter of _почта_) as a post-office doorway with a mail
 slot, in white on a blue squircle. Primary accent: blue `#4f8cff` (buttons use a
 higher-contrast `#2563eb`).

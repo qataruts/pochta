@@ -12,6 +12,10 @@ on:
   push:
     tags: ["v*"]
 
+# Needed so a tagged run can publish a GitHub Release with the installers attached.
+permissions:
+  contents: write
+
 jobs:
   build:
     strategy:
@@ -80,3 +84,15 @@ jobs:
             apps/desktop/out/*.exe
             apps/desktop/out/*.AppImage
             apps/desktop/out/*.zip
+
+      # On a v* tag, attach this platform's installer to the GitHub Release (each
+      # matrix job appends to the same release). Only runs for production tags.
+      - name: Publish to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          files: |
+            apps/desktop/out/*.dmg
+            apps/desktop/out/*.exe
+            apps/desktop/out/*.AppImage

@@ -2,6 +2,7 @@ import { ed25519 } from "@noble/curves/ed25519.js";
 import { generateMnemonic, mnemonicToSeedSync, validateMnemonic } from "@scure/bip39";
 import { wordlist } from "@scure/bip39/wordlists/english.js";
 import { pbkdf2 } from "@noble/hashes/pbkdf2.js";
+import { argon2id } from "@noble/hashes/argon2.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { gcm } from "@noble/ciphers/aes.js";
 import { randomBytes } from "@noble/hashes/utils.js";
@@ -20,9 +21,19 @@ import { fromBase64, randomId, toBase64 } from "./util";
  * browser, a keychain-backed KV on desktop/mobile, an in-memory map in tests.
  */
 
-const VAULT_KEY = "chat.identity.vault.v1";
+// One encrypted seed blob per account, keyed by pubkey, so several accounts can
+// live side by side on one device without wiping each other. A small non-secret
+// index (pubkey → display name) lets an account picker show names without unlocking.
+export const VAULT_PREFIX = "chat.vault."; // + pubkey
+const INDEX_KEY = "chat.accounts.v1";
 const DEVICE_KEY = "chat.deviceId.v1";
 const PBKDF2_ITERATIONS = 210_000;
+
+/** A stored account as shown in the device's account picker. */
+export interface AccountRef {
+  pubkey: string;
+  name: string;
+}
 
 
 export interface Identity {
@@ -112,10 +123,22 @@ function deriveKek(passphrase: string, salt: Uint8Array): Uint8Array {
   });
 }
 
+// Argon2id (memory-hard) for NEW vaults (blob v2). Because it needs a large chunk of
+// memory per guess, it makes brute-forcing a short PIN on stolen at-rest data far
+// costlier than PBKDF2 — the main defence where there's no OS keychain/passkey (web).
+// OWASP-minimum params: 19 MiB, t=2, p=1. Legacy v1 vaults still open via deriveKek.
+const ARGON2 = { t: 2, m: 19456, p: 1, dkLen: 32 };
+function deriveKekArgon2(passphrase: string, salt: Uint8Array): Uint8Array {
+  return argon2id(new TextEncoder().encode(passphrase), salt, ARGON2);
+}
+
 /**
- * The at-rest account vault + device id, bound to a host-supplied key-value
- * store. The seed phrase is encrypted under a passphrase (PBKDF2 → AES-GCM);
- * only the ciphertext is stored, so disk access alone can't read the account.
+ * The at-rest account store + device id, bound to a host-supplied key-value store.
+ * Each account's seed is encrypted under its own passphrase (PBKDF2 → AES-GCM) and
+ * stored by pubkey, so several accounts coexist on one device without wiping. A host
+ * may back the `chat.vault.*` keys with OS-keychain storage (e.g. Electron
+ * safeStorage) for hardware-grade at-rest protection; the index + device id are
+ * non-secret and can stay in the clear.
  */
 export class Vault {
   private kv: KVStore;
@@ -124,39 +147,64 @@ export class Vault {
     this.kv = kv;
   }
 
-  /** Is there an encrypted account stored on this device? */
+  private index(): Record<string, string> {
+    try {
+      return JSON.parse(this.kv.getItem(INDEX_KEY) || "{}") as Record<string, string>;
+    } catch {
+      return {};
+    }
+  }
+
+  /** The accounts stored on this device (pubkey + display name), for a picker. */
+  list(): AccountRef[] {
+    return Object.entries(this.index()).map(([pubkey, name]) => ({ pubkey, name }));
+  }
+
+  /** Is any account stored on this device? */
   has(): boolean {
-    return !!this.kv.getItem(VAULT_KEY);
+    return this.list().length > 0;
   }
 
-  clear(): void {
-    this.kv.removeItem(VAULT_KEY);
-  }
-
-  /** Encrypt the seed phrase under `passphrase` and store only the ciphertext. */
-  async persist(id: Identity, passphrase: string): Promise<void> {
+  /** Encrypt this account's seed under `passphrase`; remember its display name. */
+  async persist(id: Identity, passphrase: string, name?: string): Promise<void> {
     const salt = randomBytes(16);
     const iv = randomBytes(12);
-    const key = deriveKek(passphrase, salt);
+    const key = deriveKekArgon2(passphrase, salt);
     const ct = gcm(key, iv).encrypt(new TextEncoder().encode(id.mnemonic));
     this.kv.setItem(
-      VAULT_KEY,
-      JSON.stringify({ v: 1, salt: toBase64(salt), iv: toBase64(iv), ct: toBase64(ct) }),
+      VAULT_PREFIX + id.publicKeyHex,
+      JSON.stringify({ v: 2, salt: toBase64(salt), iv: toBase64(iv), ct: toBase64(ct) }),
     );
+    const idx = this.index();
+    idx[id.publicKeyHex] = name?.trim() || id.name;
+    this.kv.setItem(INDEX_KEY, JSON.stringify(idx));
   }
 
-  /** Decrypt the stored account with `passphrase`. Returns null on wrong passphrase. */
-  async unlock(passphrase: string): Promise<Identity | null> {
-    const raw = this.kv.getItem(VAULT_KEY);
+  /** Decrypt account `pubkey` with `passphrase`. Returns null on the wrong one. */
+  async unlock(pubkey: string, passphrase: string): Promise<Identity | null> {
+    const raw = this.kv.getItem(VAULT_PREFIX + pubkey);
     if (!raw) return null;
     try {
-      const { salt, iv, ct } = JSON.parse(raw);
-      const key = deriveKek(passphrase, fromBase64(salt));
+      const { v, salt, iv, ct } = JSON.parse(raw);
+      const key =
+        v === 2
+          ? deriveKekArgon2(passphrase, fromBase64(salt))
+          : deriveKek(passphrase, fromBase64(salt)); // legacy v1 (PBKDF2)
       const pt = gcm(key, fromBase64(iv)).decrypt(fromBase64(ct));
-      return identityFromMnemonic(new TextDecoder().decode(pt));
+      const id = identityFromMnemonic(new TextDecoder().decode(pt));
+      const name = this.index()[pubkey];
+      return name ? { ...id, name } : id;
     } catch {
       return null; // wrong passphrase → GCM auth failure throws
     }
+  }
+
+  /** Forget an account on this device (removes its encrypted seed + index entry). */
+  remove(pubkey: string): void {
+    this.kv.removeItem(VAULT_PREFIX + pubkey);
+    const idx = this.index();
+    delete idx[pubkey];
+    this.kv.setItem(INDEX_KEY, JSON.stringify(idx));
   }
 
   /**

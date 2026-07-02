@@ -2,12 +2,12 @@
 
 # Pochta
 
-### Your mail, not their archive.
+### Private chat, voice & video — that you actually own.
 
-**A private messenger you actually own** — end-to-end encrypted chat, voice, and
-video with no phone number, no account, and **no company servers**. The network runs
-on the people using it: any desktop can host, so there's no data center in the middle
-to read you, bill you, or shut you down.
+Pochta is a messaging app: chat and call your people, **end-to-end encrypted**, with
+**no phone number, no email, and no company in the middle.** Your account is a key on
+your device, and the network runs on people's own computers — so nobody can read you,
+lock you out, or shut it down. *(Your mail, not their archive.)*
 
 [![Website](https://img.shields.io/badge/website-pochta.uts.qa-E11D48)](https://pochta.uts.qa)
 [![npm](https://img.shields.io/npm/v/@pochta-chat/sdk?logo=npm&label=%40pochta-chat%2Fsdk&color=cb3837)](https://www.npmjs.com/package/@pochta-chat/sdk)
@@ -16,7 +16,7 @@ to read you, bill you, or shut you down.
 ![TypeScript](https://img.shields.io/badge/client-React%20%2F%20TypeScript-3178C6?logo=typescript&logoColor=white)
 ![End-to-end encrypted](https://img.shields.io/badge/encryption-end--to--end-2ea44f)
 
-**[pochta.uts.qa](https://pochta.uts.qa)** · [npm](https://www.npmjs.com/package/@pochta-chat/sdk) · [Protocol](PROTOCOL.md) · [Architecture](ARCHITECTURE.md)
+**[Get the app → pochta.uts.qa](https://pochta.uts.qa)** · [For developers](#for-developers) · [Protocol](PROTOCOL.md) · [Architecture](ARCHITECTURE.md)
 
 </div>
 

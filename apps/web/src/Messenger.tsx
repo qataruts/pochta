@@ -3,7 +3,6 @@ import type { TFunction } from "i18next";
 import { QRCodeSVG } from "qrcode.react";
 import { Client, type CallState, type PresenceInfo } from "./lib/client";
 import {
-  clearAll,
   getContacts,
   getMessages,
   lastMessage,
@@ -12,7 +11,8 @@ import {
   type StoredContact,
   type StoredMessage,
 } from "./lib/db";
-import { clearIdentity, type Identity } from "./lib/identity";
+import { type Identity } from "./lib/identity";
+import { hasPasskey, isPasskeySupported, registerPasskey } from "./lib/passkey";
 import { inviteLink, parseInvite } from "./lib/invite";
 import { serverLabel, setServer, socketUrl } from "./lib/server";
 import { enroll } from "./lib/enroll";
@@ -54,6 +54,8 @@ export default function Messenger({
   const [results, setResults] = useState<StoredMessage[]>([]);
   const [showInvite, setShowInvite] = useState(false);
   const [networkOpen, setNetworkOpen] = useState(false);
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [canBio, setCanBio] = useState(false); // platform passkey available + not set up yet
   const [callState, setCallState] = useState<CallState>("ended");
   const [incoming, setIncoming] = useState<{
     contact: string;
@@ -340,11 +342,22 @@ export default function Messenger({
   }
 
   function signOut() {
-    if (confirm(t("prompts.signOutConfirm"))) {
-      clearIdentity();
-      void clearAll();
-      onSignOut();
-    }
+    // Non-destructive: returns to the account picker and leaves this account's data
+    // encrypted on the device. (Removing data is an explicit action in the picker.)
+    onSignOut();
+  }
+
+  // Offer biometric unlock only where a platform authenticator exists + not yet set up.
+  useEffect(() => {
+    void (async () => {
+      if (!hasPasskey(identity.publicKeyHex) && (await isPasskeySupported())) setCanBio(true);
+    })();
+  }, [identity.publicKeyHex]);
+
+  async function enableBiometric() {
+    const ok = await registerPasskey(identity.publicKeyHex, identity.name, identity.mnemonic);
+    alert(ok ? t("onboarding.biometricEnabled") : t("onboarding.biometricSetupFailed"));
+    if (ok) setCanBio(false);
   }
 
   function beginGroupCall(pubkeys: string[], video: boolean) {
@@ -466,6 +479,14 @@ export default function Messenger({
           <button className="link" onClick={() => setGroupStarterOpen(true)} title={t("chat.newGroupCall")}>
             👥 {t("chat.groupCall")}
           </button>
+          <button className="link" onClick={() => setLinkOpen(true)} title={t("chat.useAnotherDevice")}>
+            📱 {t("chat.useAnotherDevice")}
+          </button>
+          {canBio && (
+            <button className="link" onClick={enableBiometric} title={t("onboarding.enableBiometric")}>
+              🔐 {t("onboarding.enableBiometric")}
+            </button>
+          )}
           <button className="link" onClick={joinNetwork} title={t("chat.redeemToken")}>
             {t("chat.joinPrivate")}
           </button>
@@ -599,6 +620,32 @@ export default function Messenger({
       )}
 
       {networkOpen && <NetworkPanel onClose={() => setNetworkOpen(false)} />}
+
+      {linkOpen && (
+        <div className="net-overlay" onClick={() => setLinkOpen(false)}>
+          <div className="net-panel" onClick={(e) => e.stopPropagation()}>
+            <div className="net-header">
+              <h3>{t("onboarding.kitTitle")}</h3>
+              <button className="net-close" aria-label="close" onClick={() => setLinkOpen(false)}>
+                ✕
+              </button>
+            </div>
+            <p className="net-intro">{t("onboarding.kitSub")}</p>
+            <div className="phrase">
+              {identity.mnemonic.split(" ").map((w, i) => (
+                <span key={i}>
+                  <em>{i + 1}</em>
+                  {w}
+                </span>
+              ))}
+            </div>
+            <div className="kit-qr">
+              <QRCodeSVG value={identity.mnemonic} size={150} />
+            </div>
+            <p className="warn">{t("onboarding.kitWarn")}</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

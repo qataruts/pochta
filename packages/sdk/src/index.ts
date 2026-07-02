@@ -13,7 +13,7 @@
 
 // --- values ---
 export { seal, open, deriveEncryptionKey } from "./crypto";
-export { createIdentity, restoreIdentity, sign, authParams, Vault } from "./identity";
+export { createIdentity, restoreIdentity, sign, authParams, Vault, VAULT_PREFIX } from "./identity";
 export { encryptAndUpload, downloadAndDecrypt } from "./blobs";
 export { inviteToken, parseInvite } from "./invite";
 export { enroll } from "./enroll";
@@ -24,7 +24,7 @@ export { randomId, toBase64, fromBase64 } from "./util";
 
 // --- types ---
 export type { SealedEnvelope, OpenedMessage } from "./crypto";
-export type { Identity, KVStore } from "./identity";
+export type { Identity, KVStore, AccountRef } from "./identity";
 export type {
   Body,
   MediaBody,

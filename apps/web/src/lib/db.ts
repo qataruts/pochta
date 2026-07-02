@@ -1,4 +1,4 @@
-import { openDB, type DBSchema, type IDBPDatabase } from "idb";
+import { openDB, deleteDB, type DBSchema, type IDBPDatabase } from "idb";
 import { xchacha20poly1305 } from "@noble/ciphers/chacha.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { randomBytes } from "@noble/hashes/utils.js";
@@ -16,17 +16,25 @@ import type { MediaRef, MessageStatus, StoredContact, StoredMessage, Store } fro
  */
 
 let dataKey: Uint8Array | null = null;
+let dbName = "chat"; // per-account database name (set by setDbKey)
 const te = new TextEncoder();
 const td = new TextDecoder();
 const b64 = (b: Uint8Array): string => btoa(String.fromCharCode(...b));
 const ub64 = (s: string): Uint8Array => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
 
-/** Derive the at-rest key from the identity seed. Call once after unlock. */
-export function setDbKey(seed: Uint8Array): void {
+/** Derive the at-rest key from the identity seed, and select this account's own
+ * database. Call once after unlock. Each account gets a separate database, so
+ * accounts on one device stay isolated and switching never wipes anyone's history. */
+export function setDbKey(seed: Uint8Array, account?: string): void {
   const buf = new Uint8Array(seed.length + 9);
   buf.set(seed);
   buf.set(te.encode("db-key-v1"), seed.length);
   dataKey = sha256(buf);
+  const ns = account ? `chat.${account.slice(0, 16)}` : "chat";
+  if (ns !== dbName) {
+    dbName = ns;
+    dbp = null; // reopen against this account's database on next use
+  }
 }
 
 function encField(plain: string): string {
@@ -94,7 +102,7 @@ let dbp: Promise<IDBPDatabase<ChatDB>> | null = null;
 
 function db(): Promise<IDBPDatabase<ChatDB>> {
   if (!dbp) {
-    dbp = openDB<ChatDB>("chat", 2, {
+    dbp = openDB<ChatDB>(dbName, 2, {
       upgrade(d, oldVersion) {
         if (oldVersion < 1) {
           d.createObjectStore("contacts", { keyPath: "pubkey" });
@@ -243,6 +251,16 @@ export async function clearAll(): Promise<void> {
   await d.clear("contacts");
   await d.clear("media");
   dataKey = null;
+}
+
+/** Delete one account's whole database from this device (explicit "remove account"). */
+export async function deleteAccountData(pubkey: string): Promise<void> {
+  const ns = `chat.${pubkey.slice(0, 16)}`;
+  if (ns === dbName) {
+    dbp = null;
+    dataKey = null;
+  }
+  await deleteDB(ns);
 }
 
 /**

@@ -23,4 +23,12 @@ contextBridge.exposeInMainWorld("pochta", {
     ipcRenderer.on("pochta:status", handler);
     return () => ipcRenderer.removeListener("pochta:status", handler);
   },
+
+  // OS-keychain-backed store for account vaults (Electron safeStorage). Synchronous
+  // so it can back the SDK's KVStore; only the sensitive chat.vault.* keys use it.
+  secureStore: {
+    get: (key) => ipcRenderer.sendSync("secure:get", key),
+    set: (key, value) => ipcRenderer.sendSync("secure:set", key, value),
+    remove: (key) => ipcRenderer.sendSync("secure:remove", key),
+  },
 });

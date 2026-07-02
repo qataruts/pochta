@@ -1,4 +1,4 @@
-const { app, BrowserWindow, shell, session, ipcMain } = require("electron");
+const { app, BrowserWindow, shell, session, ipcMain, safeStorage } = require("electron");
 const { spawn } = require("node:child_process");
 const path = require("node:path");
 const fs = require("node:fs");
@@ -125,6 +125,47 @@ function stopHost() {
 ipcMain.handle("host:start", () => startHost());
 ipcMain.handle("host:stop", () => stopHost());
 ipcMain.handle("host:status", () => hostStatus());
+
+// --- Secure store: account vaults wrapped by the OS keychain (safeStorage) ----
+// The renderer's account seeds (chat.vault.*) are already PIN-encrypted; here we
+// additionally seal the whole blob with an OS-protected key (macOS Keychain /
+// Windows DPAPI / Linux libsecret), so copying the app's files is useless without
+// the user's OS login. A leading byte marks whether the OS keychain was available
+// (1) or we fell back to plaintext of the already-PIN-encrypted blob (0).
+const secureFile = () => path.join(app.getPath("userData"), "secure.bin");
+
+function readSecure() {
+  try {
+    const raw = fs.readFileSync(secureFile());
+    if (raw[0] === 1 && safeStorage.isEncryptionAvailable())
+      return JSON.parse(safeStorage.decryptString(raw.subarray(1)));
+    return JSON.parse(raw.subarray(1).toString("utf8"));
+  } catch {
+    return {};
+  }
+}
+function writeSecure(map) {
+  const json = JSON.stringify(map);
+  const body = safeStorage.isEncryptionAvailable()
+    ? Buffer.concat([Buffer.from([1]), safeStorage.encryptString(json)])
+    : Buffer.concat([Buffer.from([0]), Buffer.from(json, "utf8")]);
+  fs.writeFileSync(secureFile(), body);
+}
+ipcMain.on("secure:get", (e, key) => {
+  e.returnValue = readSecure()[key] ?? null;
+});
+ipcMain.on("secure:set", (e, key, value) => {
+  const m = readSecure();
+  m[key] = value;
+  writeSecure(m);
+  e.returnValue = true;
+});
+ipcMain.on("secure:remove", (e, key) => {
+  const m = readSecure();
+  delete m[key];
+  writeSecure(m);
+  e.returnValue = true;
+});
 
 // --- Window ----------------------------------------------------------------
 

@@ -1100,3 +1100,170 @@ button {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Onboarding — clear, staged, grandma-friendly */
+.brand-mark {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 14px;
+  border-radius: 16px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 56px;
+  text-align: center;
+}
+.step {
+  color: var(--muted);
+  font-size: 11.5px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin: 0 0 6px;
+}
+.warn {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #e0a04a;
+  background: rgba(224, 160, 74, 0.1);
+  border: 1px solid rgba(224, 160, 74, 0.3);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin: 10px 0;
+  text-align: start;
+}
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  color: var(--txt);
+  margin: 6px 0 12px;
+  cursor: pointer;
+  text-align: start;
+}
+.check input {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+.pin-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pin-row .pass-input {
+  flex: 1;
+}
+.kit-qr {
+  display: flex;
+  justify-content: center;
+  padding: 12px;
+  background: #fff;
+  border-radius: 10px;
+  margin: 4px auto 12px;
+  width: max-content;
+}
+
+/* iPhone-style 6-digit PIN */
+.pin {
+  position: relative;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin: 8px 0 14px;
+  cursor: text;
+}
+.pin-hidden {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  border: 0;
+  cursor: text;
+  color: transparent;
+  background: transparent;
+}
+.pin-box {
+  width: 44px;
+  height: 52px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel2);
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  color: var(--txt);
+}
+.pin-box.filled {
+  border-color: var(--accent);
+}
+.pin-box.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(79, 140, 255, 0.25);
+}
+
+/* Account picker */
+.accounts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px 0 14px;
+}
+.account {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.account-pick {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: start;
+}
+.account-pick:hover {
+  border-color: var(--accent);
+}
+.account-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.account-avatar.big {
+  width: 64px;
+  height: 64px;
+  font-size: 28px;
+  margin: 0 auto 12px;
+}
+.account-name {
+  font-size: 15px;
+  font-weight: 500;
+}
+.account-x {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: none;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.account-x:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+}

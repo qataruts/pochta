@@ -1,8 +1,8 @@
 export const en = {
   meta: {
-    title: "Pochta — Your mail, not their archive",
+    title: "Pochta — private chat, voice & video you own",
     description:
-      "A private, end-to-end-encrypted messenger you actually own — chat, voice, and video with no phone number, no account, and no company servers. Get the desktop app or build on the @pochta-chat/sdk.",
+      "Pochta is a private messaging app: chat and call end-to-end encrypted, with no phone number, no email, and no company in the middle. Get the desktop app, or build on the @pochta-chat/sdk.",
     ogAlt: "Pochta — a private messenger you actually own.",
   },
 
@@ -24,10 +24,10 @@ export const en = {
   },
 
   hero: {
-    badge: "Open source · End-to-end encrypted · MIT",
-    title: "Your mail, not their archive.",
+    badge: "Private messenger · chat, voice & video",
+    title: "Private chat, voice & video — that you actually own.",
     subtitle:
-      "Pochta is a private messenger you actually own — end-to-end-encrypted chat, voice, and video with no phone number, no account, and no company servers. The network runs on the people using it.",
+      "Pochta is a messaging app: chat and call your people, end-to-end encrypted. No phone number, no email, no company in the middle. Your account is a key on your device, and the network runs on people's own computers — so nobody can read you, lock you out, or shut it down.",
     ctaPrimary: "Get the desktop app",
     ctaSecondary: "For developers",
     microcopy: "No phone number · No email · No account server",

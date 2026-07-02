@@ -1,0 +1,18 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Pochta">
+  <title>Pochta</title>
+  <defs>
+    <linearGradient id="pochtaGrad" x1="72" y1="56" x2="452" y2="472" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6ea0ff"/>
+      <stop offset="0.5" stop-color="#4f8cff"/>
+      <stop offset="1" stop-color="#2f6fe6"/>
+    </linearGradient>
+  </defs>
+  <!-- blue squircle tile -->
+  <rect x="16" y="16" width="480" height="480" rx="120" fill="url(#pochtaGrad)"/>
+  <rect x="16.5" y="16.5" width="479" height="479" rx="119.5" fill="none" stroke="#000" stroke-opacity="0.06"/>
+  <!-- the Cyrillic П (Pe) — the doorway of a post office -->
+  <path d="M150 374 L150 202 Q150 150 202 150 L310 150 Q362 150 362 202 L362 374 L300 374 L300 210 L212 210 L212 374 Z"
+        fill="#fff"/>
+  <!-- a mail slot cut into the crossbar -->
+  <rect x="218" y="171" width="76" height="17" rx="8.5" fill="#2f6fe6"/>
+</svg>

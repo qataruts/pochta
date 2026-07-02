@@ -87,7 +87,12 @@
     "minutesAgo": "{{m}}m ago",
     "hoursAgo": "{{h}}h ago",
     "quoteMessage": "message",
-    "deletedShort": "🚫 deleted"
+    "deletedShort": "🚫 deleted",
+    "groupCall": "Group call",
+    "newGroupCall": "New group call",
+    "pickParticipants": "Choose who to call.",
+    "groupCalling": "Calling…",
+    "youLabel": "you"
   },
   "prompts": {
     "editMessage": "Edit message:",
@@ -128,5 +133,19 @@
   },
   "settings": {
     "toggleLanguage": "العربية"
+  },
+  "network": {
+    "title": "Host the network",
+    "open": "Host",
+    "intro": "This desktop can help run Pochta. There are no company servers — desktops like yours are the network.",
+    "desktopOnly": "Hosting runs in the Pochta desktop app. Web and mobile are clients.",
+    "footNote": "However you help, messages stay end-to-end encrypted — a host only ever sees sealed ciphertext, never your content. The more desktops host, the bigger the meetings the network can carry.",
+    "host": {
+      "title": "Help host the network",
+      "desc": "Run a post office on this device: deliver messages when your contacts are offline, and forward encrypted traffic for big meetings when your connection can spare it. Pochta may offer you a meeting to carry when you're a strong, reachable host — always your choice, never automatic.",
+      "statusOn": "Hosting on port {{port}} — you're helping run the network.",
+      "statusOff": "Off — you're a plain client on someone else's host.",
+      "note": "You only ever see ciphertext — never message content, whether it's your circle's mail or a meeting you help carry."
+    }
   }
 }

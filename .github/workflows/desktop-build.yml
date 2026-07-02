@@ -1,0 +1,82 @@
+# Builds the Pochta desktop app (client + bundled relay for the Host toggle) into
+# installers on native per-OS/arch runners — so each bundle's Elixir release matches
+# its platform. macos-13 = Intel (x64), macos-14 = Apple Silicon (arm64).
+#
+# Trigger manually (Actions → this workflow → Run), or push a v* tag. Builds are
+# UNSIGNED (identity:null); add Apple/Windows signing certs as secrets + notarization
+# later for distribution outside Gatekeeper warnings.
+name: Build desktop apps
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-13 # Intel
+            builder: --mac --x64
+            artifact: pochta-desktop-mac-intel
+          - os: macos-14 # Apple Silicon
+            builder: --mac --arm64
+            artifact: pochta-desktop-mac-arm64
+          - os: windows-latest
+            builder: --win --x64
+            artifact: pochta-desktop-windows
+          - os: ubuntu-latest
+            builder: --linux --x64
+            artifact: pochta-desktop-linux
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.3
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install workspace deps (web + sdk)
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build web client
+        run: pnpm --filter web build
+
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: "27"
+          elixir-version: "1.18"
+
+      - name: Build the bundled relay release
+        working-directory: apps/server
+        shell: bash
+        run: |
+          mix local.hex --force
+          mix local.rebar --force
+          mix deps.get --only prod
+          MIX_ENV=prod mix release --overwrite
+
+      - name: Install desktop deps (electron + builder)
+        working-directory: apps/desktop
+        run: npm install
+
+      - name: Package installer
+        working-directory: apps/desktop
+        run: npx electron-builder ${{ matrix.builder }} --publish never
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          if-no-files-found: warn
+          path: |
+            apps/desktop/out/*.dmg
+            apps/desktop/out/*.exe
+            apps/desktop/out/*.AppImage
+            apps/desktop/out/*.zip

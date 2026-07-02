@@ -23,9 +23,13 @@ import {
   CallToast,
   Composer,
   ContactRow,
+  GroupCallOverlay,
+  GroupCallStarter,
   MessageBubble,
   type Preview,
 } from "./components";
+import { NetworkPanel } from "./components/network";
+import { desktop } from "./lib/desktop";
 
 export default function Messenger({
   identity,
@@ -49,15 +53,20 @@ export default function Messenger({
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<StoredMessage[]>([]);
   const [showInvite, setShowInvite] = useState(false);
+  const [networkOpen, setNetworkOpen] = useState(false);
   const [callState, setCallState] = useState<CallState>("ended");
   const [incoming, setIncoming] = useState<{
     contact: string;
     name: string;
     callId: string;
     video: boolean;
+    roster?: string[];
   } | null>(null);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+  const [peers, setPeers] = useState<Record<string, { name: string; stream: MediaStream }>>({});
+  const [groupActive, setGroupActive] = useState(false);
+  const [groupStarterOpen, setGroupStarterOpen] = useState(false);
 
   const clientRef = useRef<Client | null>(null);
   const activeRef = useRef<string | null>(null);
@@ -121,20 +130,29 @@ export default function Messenger({
         },
         onTyping: (contact, on) => handleTyping(contact, on),
         onPresence: (contact, info) => setPresence((p) => ({ ...p, [contact]: info })),
-        onIncomingCall: (contact, name, callId, video) =>
-          setIncoming({ contact, name, callId, video }),
+        onIncomingCall: (contact, name, callId, video, roster) =>
+          setIncoming({ contact, name, callId, video, roster }),
         onCallState: (state) => {
           setCallState(state);
           if (state === "ended") {
             setIncoming(null);
             setLocalStream(null);
             setRemoteStream(null);
+            setPeers({});
+            setGroupActive(false);
           } else if (state !== "ringing") {
             setIncoming(null);
           }
         },
         onLocalStream: setLocalStream,
         onRemoteStream: setRemoteStream,
+        onPeerStream: (pubkey, name, stream) =>
+          setPeers((prev) => {
+            const next = { ...prev };
+            if (stream) next[pubkey] = { name, stream };
+            else delete next[pubkey];
+            return next;
+          }),
       });
       clientRef.current = client;
       client.connect(stored);
@@ -329,6 +347,18 @@ export default function Messenger({
     }
   }
 
+  function beginGroupCall(pubkeys: string[], video: boolean) {
+    setGroupActive(true);
+    setGroupStarterOpen(false);
+    void clientRef.current?.startGroupCall(pubkeys, video);
+  }
+
+  function acceptIncoming() {
+    if (!incoming) return;
+    if (incoming.roster && incoming.roster.length > 1) setGroupActive(true);
+    void clientRef.current?.acceptCall(incoming.callId);
+  }
+
   const activeContact = contacts.find((c) => c.pubkey === active);
   const link = inviteLink(identity);
   const inCall = callState === "calling" || callState === "connecting" || callState === "connected";
@@ -423,6 +453,18 @@ export default function Messenger({
         <div className="sidebar-footer">
           <button className="link server" onClick={changeServer} title={t("chat.changeRelay")}>
             🖧 {serverLabel()}
+          </button>
+          {desktop() && (
+            <button
+              className="link network"
+              onClick={() => setNetworkOpen(true)}
+              title={t("network.title")}
+            >
+              📡 {t("network.open")}
+            </button>
+          )}
+          <button className="link" onClick={() => setGroupStarterOpen(true)} title={t("chat.newGroupCall")}>
+            👥 {t("chat.groupCall")}
           </button>
           <button className="link" onClick={joinNetwork} title={t("chat.redeemToken")}>
             {t("chat.joinPrivate")}
@@ -524,20 +566,39 @@ export default function Messenger({
         <CallToast
           name={incoming.name}
           video={incoming.video}
-          onAccept={() => clientRef.current?.acceptCall(incoming.callId)}
+          onAccept={acceptIncoming}
           onDecline={() => clientRef.current?.declineCall(incoming.callId)}
         />
       )}
 
-      {inCall && (
-        <CallOverlay
-          callState={callState}
-          callName={callName}
-          localStream={localStream}
-          remoteStream={remoteStream}
-          onHangup={() => clientRef.current?.hangup()}
+      {inCall &&
+        (groupActive ? (
+          <GroupCallOverlay
+            callState={callState}
+            localStream={localStream}
+            peers={peers}
+            selfName={identity.name}
+            onHangup={() => clientRef.current?.hangup()}
+          />
+        ) : (
+          <CallOverlay
+            callState={callState}
+            callName={callName}
+            localStream={localStream}
+            remoteStream={remoteStream}
+            onHangup={() => clientRef.current?.hangup()}
+          />
+        ))}
+
+      {groupStarterOpen && (
+        <GroupCallStarter
+          contacts={contacts}
+          onStart={beginGroupCall}
+          onClose={() => setGroupStarterOpen(false)}
         />
       )}
+
+      {networkOpen && <NetworkPanel onClose={() => setNetworkOpen(false)} />}
     </div>
   );
 }

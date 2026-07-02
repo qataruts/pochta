@@ -127,3 +127,30 @@ integrating it:
 Larger items on the horizon: per-device keys, group chat (sender-keys/MLS + SFU),
 TURN for strict NATs, forward secrecy (Double Ratchet), the untrusted volunteer-node
 mesh, human-friendly `@handles`, and native mobile apps.
+
+## Transport seam & serverless discovery (design)
+
+**The seam (done).** The SDK `Client` no longer talks to Phoenix directly — it depends
+on a `Transport` interface ([`packages/sdk/src/transport.ts`](packages/sdk/src/transport.ts)):
+`connect` (subscribe to sealed envelopes + status), `send`, `queryPresence`, `leave`.
+Today's relay is one implementation, `PhoenixTransport` (one socket + your inbox
+channel). Inject a different backend via `ClientConfig.transport`; the messaging + call
+machinery is unchanged. The transport only ever moves **sealed** envelopes — it never
+sees plaintext, on any backend. Verified behaviour-preserving: 1:1, mesh, and SFU calls
+all still pass against the relay through `PhoenixTransport`.
+
+**Why:** it decouples *how peers find and reach each other* from the E2E core, so the
+last bit of centralization — the relay as rendezvous — can be swapped for a peer mesh.
+
+**Serverless discovery (future backend).** A `DhtTransport` on **js-libp2p**:
+- **Discovery:** a Kademlia DHT keyed by **pubkey → your signed, current endpoint**
+  (addresses + ICE candidates). `lookup(pubkey)` → connect directly (WebRTC), no relay
+  in the middle. DHT nodes = the desktop hosts; a newcomer bootstraps off a few known ones.
+- **Transport:** libp2p's WebRTC transport for the connection; **circuit-relay** for
+  hard NATs (a volunteer host relays the encrypted stream — the TURN role).
+- **Not replaced by the DHT:** offline delivery still needs a **host mailbox** (a DHT
+  only rendezvous *online* peers), and presence becomes gossip/heartbeat rather than a
+  server query. So the DHT kills the *discovery/signaling* server; hosts still provide
+  the post office + relay-of-last-resort.
+- **Scope:** the seam is the buildable step (done); the js-libp2p backend (WebRTC +
+  Kademlia + circuit-relay + bootstrap + a mailbox bridge) is the multi-week build.

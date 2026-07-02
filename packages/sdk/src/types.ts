@@ -77,7 +77,34 @@ export type Body =
   | { t: "call-answer"; callId: string; sdp: string }
   | { t: "call-ice"; callId: string; candidate: RTCIceCandidateInit }
   | { t: "call-decline"; callId: string }
-  | { t: "call-hangup"; callId: string };
+  | { t: "call-hangup"; callId: string }
+  // Group calls: the ring carries the roster directory (so participants who aren't
+  // each other's contacts can still reach one another); join/leave manage
+  // membership; offer/answer/ice above are reused per-peer, routed by callId.
+  // `forwarder` (when set) = an elected host everyone routes through (star / SFU)
+  // instead of a full mesh — for calls too big for mesh.
+  // `forwarder` = the recipient's assigned host; `forwarders` = the full set (for a
+  // cascade, forwarders mesh among themselves and each serves a cluster).
+  | { t: "call-invite"; callId: string; video: boolean; roster: RosterEntry[]; forwarder?: string; forwarders?: string[] }
+  | { t: "call-join"; callId: string; enc: string; name: string; relay?: string }
+  | { t: "call-leave"; callId: string }
+  // Forwarder election ("offered, not forced"): the initiator asks a capable node
+  // to host; it accepts or declines before anyone is rung. `forwarders` = the whole
+  // set so a co-host knows its peer forwarders.
+  | { t: "call-host-offer"; callId: string; video: boolean; roster: RosterEntry[]; forwarders: string[] }
+  | { t: "call-host-ack"; callId: string; accept: boolean }
+  // Star/SFU attribution: the forwarder tells a participant which origin a relayed
+  // stream belongs to (so it can label the tile). Sent just before the renegotiation
+  // that adds that stream.
+  | { t: "call-fwd"; callId: string; streamId: string; from: string; name: string };
+
+/** One participant in a group call: how to reach and name them. */
+export interface RosterEntry {
+  pk: string;
+  enc: string;
+  name: string;
+  relay?: string;
+}
 
 export type CallState = "calling" | "ringing" | "connecting" | "connected" | "ended";
 
@@ -96,10 +123,13 @@ export interface ClientEvents {
   onTyping: (contact: string, on: boolean) => void;
   onContact: (contact: StoredContact) => void;
   onPresence: (contact: string, info: PresenceInfo) => void;
-  onIncomingCall: (contact: string, name: string, callId: string, video: boolean) => void;
+  onIncomingCall: (contact: string, name: string, callId: string, video: boolean, roster?: string[]) => void;
   onCallState: (state: CallState, info?: string) => void;
   onLocalStream: (stream: MediaStream | null) => void;
   onRemoteStream: (stream: MediaStream | null) => void;
+  // Group calls: one per remote participant. stream set when their media arrives,
+  // null when they leave. 1:1 calls use onRemoteStream instead; groups use this.
+  onPeerStream: (pubkey: string, name: string, stream: MediaStream | null) => void;
 }
 
 /**

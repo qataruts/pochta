@@ -1,0 +1,45 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Pochta — your mail, not their archive">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#eef3fd"/>
+    </linearGradient>
+    <linearGradient id="mark" x1="96" y1="176" x2="336" y2="440" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6ea0ff"/>
+      <stop offset="0.5" stop-color="#4f8cff"/>
+      <stop offset="1" stop-color="#2f6fe6"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.28" cy="0.2" r="0.7">
+      <stop offset="0" stop-color="#4f8cff" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#4f8cff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#glow)"/>
+
+  <!-- logo mark -->
+  <g transform="translate(96 176)">
+    <rect width="240" height="240" rx="60" fill="url(#mark)"/>
+    <path d="M70 176 L70 95 Q70 70 95 70 L145 70 Q170 70 170 95 L170 176 L141 176 L141 98 L99 98 L99 176 Z" fill="#fff"/>
+    <rect x="102" y="80" width="36" height="8" rx="4" fill="#2f6fe6"/>
+  </g>
+
+  <!-- wordmark + tagline -->
+  <g transform="translate(392 196)" font-family="Inter, system-ui, -apple-system, Segoe UI, sans-serif">
+    <text x="0" y="0" font-size="40" font-weight="600" letter-spacing="1" fill="#2563eb">POCHTA · почта</text>
+    <text x="-2" y="110" font-size="86" font-weight="800" letter-spacing="-2" fill="#0f1420">Your mail,</text>
+    <text x="-2" y="210" font-size="86" font-weight="800" letter-spacing="-2" fill="#0f1420">not their archive.</text>
+    <text x="0" y="286" font-size="30" font-weight="500" fill="#55607a">Private, end-to-end-encrypted chat, voice &amp; video.</text>
+    <text x="0" y="330" font-size="30" font-weight="500" fill="#55607a">No phone number. No account. No company servers.</text>
+  </g>
+
+  <!-- footer chips -->
+  <g transform="translate(96 556)" font-family="Inter, system-ui, sans-serif" font-size="26" font-weight="600" fill="#55607a">
+    <text x="0" y="0">Open source · MIT</text>
+    <text x="360" y="0">·</text>
+    <text x="392" y="0">@pochta-chat/sdk</text>
+    <text x="820" y="0">·</text>
+    <text x="852" y="0">pochta.uts.qa</text>
+  </g>
+</svg>

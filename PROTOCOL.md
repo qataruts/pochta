@@ -123,14 +123,51 @@ Outward-facing bodies carry `relay` (sender's home relay) so replies can federat
 | `call-answer` | `callId, sdp`                                                | WebRTC answer (ephemeral) |
 | `call-ice`    | `callId, candidate`                                          | trickled ICE candidate (ephemeral) |
 | `call-decline`| `callId`                                                     | decline (ephemeral) |
-| `call-hangup` | `callId`                                                     | hang up (ephemeral) |
+| `call-hangup` | `callId`                                                     | hang up (1:1, ephemeral) |
+| `call-invite` | `callId, video, roster[], forwarder?`                        | ring for a **group** call; `roster` is a participant directory; `forwarder` = elected host (ephemeral) |
+| `call-join`   | `callId, enc, name, relay?`                                  | "I accepted" — announce to the roster (ephemeral) |
+| `call-leave`  | `callId`                                                     | leave a group call (ephemeral) |
+| `call-host-offer` | `callId, video, roster[]`                                | ask a capable node to host (forward) the call (ephemeral) |
+| `call-host-ack`   | `callId, accept`                                         | the asked node accepts/declines the forwarder role (ephemeral) |
+
+A **`roster` entry** is `{ pk, enc, name, relay? }` — enough to seal to and name
+each participant, so people who aren't each other's contacts can still connect.
 
 **Multi-device:** carbon every outgoing message/op to your *own* inbox too
 (sealed to yourself). Other devices reconstruct sent history from carbons on
 catch-up. Accept carbons only when `from == your pubkey`.
 
-**Calls:** once offer/answer/ICE complete, media flows **peer-to-peer over
+**1:1 calls:** once offer/answer/ICE complete, media flows **peer-to-peer over
 WebRTC** — never through the relay. ICE servers come from `GET /config`.
+
+**Group calls (mesh):** a call becomes a room sharing one `callId`. The initiator
+sends `call-invite` (with the full roster) to each invitee; on accept an invitee
+sends `call-join` to every roster member. Glare is avoided **deterministically**:
+for each pair the **lower pubkey** is the offerer. Receiving a `call-join`, the
+lower peer sends the `call-offer`; the higher peer instead replies with a
+`call-join` (a "join-back") so the lower one offers — which also repairs the race
+where a join arrived before the recipient had entered the room. `call-offer/answer/ice`
+are then reused **per peer**, routed by `callId`. Every leg is direct P2P (full
+mesh), so small groups need no server at all.
+
+**Forwarder (star / SFU) for larger calls:** above `MESH_MAX` participants (or when
+a forwarder is named), the initiator **offers** the host role to a capable node
+(`call-host-offer` → `call-host-ack`, so it's opt-in, not forced). Once accepted,
+the ring's `call-invite` carries `forwarder`, and every participant connects **only
+to the forwarder** (a star) instead of meshing. The forwarder then **relays each
+participant's media to the others**: it adds their tracks to every other leg,
+renegotiates, and sends `call-fwd` so the receiver can attribute each relayed stream
+to its origin — so everyone sees everyone through one host, each holding a single
+connection. **Cascading:** for very large calls, elect **multiple** forwarders — they
+mesh among themselves and each serves a cluster (participants are round-robin
+assigned; `call-invite.forwarders` carries the set, `forwarder` the recipient's host).
+A forwarder relays its own cluster's media to peer forwarders, which fan it out to
+theirs; media received *from* a forwarder is relayed only to local participants, never
+back to a forwarder (no loops). The two-way forwarder↔forwarder renegotiation uses
+**perfect negotiation** (polite peer rolls back on a glare). Election + star + relay +
+cascade are live-tested (everyone-sees-everyone, glare-free). Remaining hardening:
+**SFrame** so forwarders relay ciphertext they can't decode (today a browser forwarder
+handles media in the clear).
 
 ## 6. Media blobs
 

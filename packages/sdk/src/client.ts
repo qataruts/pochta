@@ -1,14 +1,14 @@
-import { Socket, type Channel } from "phoenix";
-import { authParams, type Identity } from "./identity";
 import { open, seal, type SealedEnvelope } from "./crypto";
 import { downloadAndDecrypt, encryptAndUpload } from "./blobs";
-import { EVENTS, inboxTopic } from "./protocol";
+import type { Identity } from "./identity";
 import { randomId } from "./util";
+import { PhoenixTransport, type Transport } from "./transport";
 import type {
   Body,
   ClientEvents,
   MediaBody,
   MediaRef,
+  RosterEntry,
   Store,
   StoredContact,
   StoredMessage,
@@ -33,12 +33,13 @@ import type {
 
 /** Everything the client needs from its host to run. */
 export interface ClientConfig {
-  socketUrl: string; // ws(s)://relay/socket
+  socketUrl: string; // ws(s)://relay/socket (used to build the default PhoenixTransport)
   httpBase: string; // http(s)://relay (for /config, /blobs, relay hints)
   identity: Identity;
   store: Store;
   events: ClientEvents;
   deviceId: string; // stable per-device id (for the delivery cursor)
+  transport?: Transport; // override the messaging backend (default: relay over Phoenix)
 }
 
 interface ActiveCall {
@@ -49,11 +50,51 @@ interface ActiveCall {
   localStream: MediaStream;
 }
 
+/** One remote leg of a group call (mesh: one peer connection per participant). */
+interface RoomPeer {
+  pubkey: string;
+  pc: RTCPeerConnection;
+  fwded: Set<string>; // origin pubkeys already relayed onto this peer's PC
+  negotiating: boolean; // a (re)negotiation offer of mine is in flight
+  renegPending: boolean; // more tracks were added while negotiating → renegotiate after
+  polite: boolean; // perfect negotiation: on a glare, the polite peer yields
+  makingOffer: boolean; // I'm mid-way creating an offer to this peer
+}
+
+/**
+ * A group call is a mesh of 1:1 legs sharing a callId. `dir` is the participant
+ * directory (how to reach + name each), so people who aren't each other's
+ * contacts can still connect. Rule that avoids glare: for each pair, the LOWER
+ * pubkey is the offerer (see onCallJoin); the other only answers.
+ */
+interface GroupCall {
+  callId: string;
+  video: boolean;
+  localStream: MediaStream;
+  peers: Map<string, RoomPeer>;
+  dir: Map<string, { enc: string; name: string; relay?: string }>;
+  pendingIce: Map<string, RTCIceCandidateInit[]>;
+  // Empty = mesh. One = single SFU. Many = a CASCADE: the forwarders mesh among
+  // themselves and each serves a cluster of participants.
+  forwarders: string[];
+  // Participant side: which forwarder I attach to (undefined if I'm a forwarder / mesh).
+  myForwarder?: string;
+  // Forwarder side: every participant's media I know, keyed by ORIGIN pubkey.
+  // `local` = one of MY cluster → relay to peer forwarders too; else remote (came
+  // from a peer forwarder) → relay only to my own locals, never back (no loops).
+  origins: Map<string, { stream: MediaStream; name: string; local: boolean }>;
+  // streamId → origin attribution (from call-fwd), + streams buffered until it lands.
+  fwd: Map<string, { from: string; name: string }>;
+  pending: Map<string, MediaStream>;
+}
+
+/** Above this many participants, a group call elects a forwarder instead of meshing. */
+const MESH_MAX = 4;
+
 const short = (id: string) => id.slice(0, 6);
 
 export class Client {
-  private socket: Socket;
-  private inbox: Channel;
+  private transport: Transport;
   private events: ClientEvents;
   private identity: Identity;
   private store: Store;
@@ -69,16 +110,21 @@ export class Client {
   private pendingOffer:
     | { callId: string; contact: string; sdp: string; video: boolean; enc: string; ice: RTCIceCandidateInit[] }
     | null = null;
+  private room: GroupCall | null = null;
+  private pendingInvite:
+    | { callId: string; from: string; name: string; video: boolean; roster: RosterEntry[]; forwarder?: string; forwarders?: string[]; callerEnc: string; callerRelay?: string }
+    | null = null;
+  // Initiator: host-offers out to co-forwarders; ring participants once all ack.
+  private pendingStart:
+    | { callId: string; video: boolean; roster: RosterEntry[]; forwarders: string[]; assign: Map<string, string>; awaiting: Set<string> }
+    | null = null;
 
   constructor(cfg: ClientConfig) {
     this.identity = cfg.identity;
     this.store = cfg.store;
     this.events = cfg.events;
     this.httpBase = cfg.httpBase;
-    this.socket = new Socket(cfg.socketUrl, { params: authParams(cfg.identity) });
-    this.inbox = this.socket.channel(inboxTopic(cfg.identity.publicKeyHex), {
-      device_id: cfg.deviceId,
-    });
+    this.transport = cfg.transport ?? new PhoenixTransport(cfg.socketUrl, cfg.identity, cfg.deviceId);
   }
 
   connect(seedContacts: StoredContact[]): void {
@@ -92,34 +138,22 @@ export class Client {
       })
       .catch(() => {});
 
-    this.socket.onOpen(() => this.events.onStatus("connected"));
-    this.socket.onError(() => this.events.onStatus("reconnecting…"));
-    this.socket.onClose(() => this.events.onStatus("offline"));
-    this.socket.connect();
-
-    this.inbox.on(EVENTS.message, (m: { envelope: SealedEnvelope }) =>
-      this.handleEnvelope(m.envelope),
-    );
-    this.inbox
-      .join()
-      .receive("ok", () => {
-        this.events.onStatus("connected");
+    this.transport.connect({
+      onEnvelope: (env) => this.handleEnvelope(env),
+      onStatus: (s) => this.events.onStatus(s),
+      onReady: () => {
         this.pollPresence();
         this.presenceTimer = setInterval(() => this.pollPresence(), 20000);
-      })
-      .receive("error", (e) => this.events.onStatus(`inbox error: ${JSON.stringify(e)}`));
+      },
+    });
   }
 
-  /** Ask the relay who's online / last-seen for the given contacts. */
+  /** Ask who's online / last-seen for the given contacts (via the transport). */
   queryPresence(pubkeys: string[]): void {
     if (pubkeys.length === 0) return;
-    this.inbox
-      .push(EVENTS.presence, { of: pubkeys })
-      .receive("ok", (resp: { presence: Record<string, { online: boolean; last_seen: number | null }> }) => {
-        for (const [pk, info] of Object.entries(resp.presence)) {
-          this.events.onPresence(pk, { online: info.online, lastSeen: info.last_seen });
-        }
-      });
+    this.transport.queryPresence(pubkeys, (rows) => {
+      for (const r of rows) this.events.onPresence(r.pubkey, { online: r.online, lastSeen: r.lastSeen });
+    });
   }
 
   private pollPresence(): void {
@@ -307,15 +341,15 @@ export class Client {
   leave(): void {
     if (this.presenceTimer) clearInterval(this.presenceTimer);
     this.endCall("ended");
-    this.inbox.leave();
-    this.socket.disconnect();
+    if (this.room) this.endRoom("ended");
+    this.transport.leave();
   }
 
   // --- calls -------------------------------------------------------
 
   async startCall(contact: string, video: boolean): Promise<void> {
     const c = this.contacts.get(contact);
-    if (!c || this.call) return;
+    if (!c || this.call || this.room) return;
     const callId = randomId();
     const localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video });
     const pc = this.newCallPc(c.pubkey, c.enc, callId, localStream);
@@ -337,6 +371,7 @@ export class Client {
   }
 
   async acceptCall(callId: string): Promise<void> {
+    if (this.pendingInvite && this.pendingInvite.callId === callId) return this.acceptInvite();
     const po = this.pendingOffer;
     if (!po || po.callId !== callId) return;
     this.pendingOffer = null;
@@ -360,6 +395,13 @@ export class Client {
       this.sealTo(po.contact, po.enc, { t: "call-decline", callId }, `dec-${callId}`, true);
       this.pendingOffer = null;
       this.events.onCallState("ended", "declined");
+      return;
+    }
+    const inv = this.pendingInvite;
+    if (inv && inv.callId === callId) {
+      this.sealPeer(inv.from, inv.callerEnc, inv.callerRelay, { t: "call-decline", callId }, `dec-${callId}`, true);
+      this.pendingInvite = null;
+      this.events.onCallState("ended", "declined");
     }
   }
 
@@ -368,6 +410,16 @@ export class Client {
       const c = this.contacts.get(this.call.contact);
       if (c) this.sealTo(c.pubkey, c.enc, { t: "call-hangup", callId: this.call.callId }, `hup-${this.call.callId}`, true);
       this.endCall("ended");
+    } else if (this.room) {
+      this.endRoom("ended");
+    } else if (this.pendingInvite) {
+      const inv = this.pendingInvite;
+      this.sealPeer(inv.from, inv.callerEnc, inv.callerRelay, { t: "call-decline", callId: inv.callId }, `dec-${inv.callId}`, true);
+      this.pendingInvite = null;
+      this.events.onCallState("ended", "declined");
+    } else if (this.pendingStart) {
+      this.pendingStart = null;
+      this.events.onCallState("ended");
     } else if (this.pendingOffer) {
       this.declineCall(this.pendingOffer.callId);
     }
@@ -417,6 +469,465 @@ export class Client {
     this.pendingOffer = null;
   }
 
+  // --- group calls (mesh) ------------------------------------------
+  //
+  // A group call is a mesh of 1:1 legs sharing one callId, coordinated entirely
+  // over the sealed inbox — no relay changes. The ring (`call-invite`) carries a
+  // roster directory so participants who aren't each other's contacts can still
+  // connect. Glare is avoided deterministically: for each pair the LOWER pubkey
+  // offers (a `call-join` from the higher peer triggers the offer; a higher peer
+  // receiving a join answers with a join-back so the lower one offers). Verified
+  // with a 3-peer live mesh test. Larger calls will later elect a forwarder (SFU)
+  // instead of full mesh — same signaling.
+
+  /**
+   * Start a group call. Small calls mesh; larger ones (or when `opts.forward` is
+   * set) elect a FORWARDER everyone routes through. If the forwarder is someone
+   * else, we offer them the role first and only ring once they accept.
+   */
+  async startGroupCall(
+    contacts: string[],
+    video: boolean,
+    opts?: { forward?: boolean; forwarder?: string; forwarders?: string[] },
+  ): Promise<void> {
+    if (this.call || this.room || this.pendingStart) return;
+    const invitees = contacts
+      .map((pk) => this.contacts.get(pk))
+      .filter((c): c is StoredContact => !!c);
+    if (invitees.length === 0) return;
+
+    const me = this.identity.publicKeyHex;
+    const callId = randomId();
+    const roster: RosterEntry[] = [
+      { pk: me, enc: this.identity.encPublicKeyHex, name: this.identity.name, relay: this.httpBase },
+      ...invitees.map((c) => ({ pk: c.pubkey, enc: c.enc, name: c.name, relay: c.relay })),
+    ];
+
+    // Forwarder set: explicit list wins; else a single forwarder (named or me) when
+    // asked / when the call is too big; else mesh.
+    let forwarders: string[] = [];
+    if (opts?.forwarders?.length) forwarders = [...opts.forwarders];
+    else if (opts?.forwarder) forwarders = [opts.forwarder];
+    else if (opts?.forward || roster.length > MESH_MAX) forwarders = [me];
+
+    if (forwarders.length === 0) {
+      await this.beginGroupRoom(callId, video, roster, [], undefined, true); // mesh
+      return;
+    }
+
+    // Assign each non-forwarder participant to a forwarder (round-robin).
+    const assign = new Map<string, string>();
+    let i = 0;
+    for (const r of roster) {
+      if (!forwarders.includes(r.pk)) assign.set(r.pk, forwarders[i++ % forwarders.length]);
+    }
+
+    // Co-forwarders (all but me) must accept the host role before we ring.
+    const coForwarders = forwarders.filter((f) => f !== me);
+    if (coForwarders.length === 0) {
+      await this.beginGroupRoom(callId, video, roster, forwarders, undefined, true, assign);
+      return;
+    }
+    this.pendingStart = { callId, video, roster, forwarders, assign, awaiting: new Set(coForwarders) };
+    this.events.onCallState("calling");
+    for (const f of coForwarders) {
+      const c = invitees.find((x) => x.pubkey === f);
+      if (c) this.sealPeer(c.pubkey, c.enc, c.relay, { t: "call-host-offer", callId, video, roster, forwarders }, `hostoff-${callId}-${f}`, true);
+    }
+  }
+
+  /**
+   * Build my room and optionally ring the others. `forwarders` empty = mesh; one =
+   * single SFU; many = a cascade. If I'm in `forwarders` I'm a host (connect to peer
+   * forwarders, await participant joins); if `myForwarder` is set I'm a participant
+   * (join only that host); a mesh joiner joins everyone.
+   */
+  private async beginGroupRoom(
+    callId: string,
+    video: boolean,
+    roster: RosterEntry[],
+    forwarders: string[],
+    myForwarder: string | undefined,
+    ring: boolean,
+    assign?: Map<string, string>,
+  ): Promise<void> {
+    const me = this.identity.publicKeyHex;
+    const localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video });
+    const dir = new Map<string, { enc: string; name: string; relay?: string }>();
+    for (const r of roster) if (r.pk !== me) dir.set(r.pk, { enc: r.enc, name: r.name, relay: r.relay });
+    this.room = {
+      callId, video, localStream, peers: new Map(), dir, pendingIce: new Map(),
+      forwarders, myForwarder, origins: new Map(), fwd: new Map(), pending: new Map(),
+    };
+    this.events.onLocalStream(localStream);
+    this.events.onCallState(ring ? "calling" : "connecting");
+    const amForwarder = forwarders.includes(me);
+
+    const join = (pk: string) => {
+      const info = dir.get(pk);
+      if (info) this.sealPeer(pk, info.enc, info.relay, { t: "call-join", callId, enc: this.identity.encPublicKeyHex, name: this.identity.name, relay: this.httpBase }, `join-${callId}-${pk}-${randomId()}`, true);
+    };
+
+    if (ring) {
+      // Ring each participant with their assigned host + the full set. Forwarders
+      // aren't rung (they were host-offered).
+      for (const r of roster) {
+        if (r.pk === me || forwarders.includes(r.pk)) continue;
+        this.sealPeer(r.pk, r.enc, r.relay, { t: "call-invite", callId, video, roster, forwarder: assign?.get(r.pk), forwarders }, `inv-${callId}-${r.pk}`, true);
+      }
+    }
+
+    if (amForwarder) {
+      for (const f of forwarders) if (f !== me) join(f); // mesh among forwarders (glare picks offerer)
+    } else if (myForwarder) {
+      join(myForwarder); // star/cascade participant → attach to my host only
+    } else if (forwarders.length === 0 && !ring) {
+      for (const pk of dir.keys()) join(pk); // mesh joiner
+    }
+  }
+
+  /** Accept a group invite: set up my room (star/cascade → join my host; mesh → all). */
+  private async acceptInvite(): Promise<void> {
+    const inv = this.pendingInvite!;
+    this.pendingInvite = null;
+    const forwarders = inv.forwarders ?? (inv.forwarder ? [inv.forwarder] : []);
+    const amForwarder = forwarders.includes(this.identity.publicKeyHex);
+    await this.beginGroupRoom(inv.callId, inv.video, inv.roster, forwarders, amForwarder ? undefined : inv.forwarder, false);
+  }
+
+  /** Offer to a peer (used by the forwarder for each joiner, and by the mesh rule). */
+  private async offerTo(pk: string): Promise<void> {
+    const room = this.room!;
+    const info = room.dir.get(pk)!;
+    const pc = this.newPeerPc(pk);
+    const peer = room.peers.get(pk)!;
+    peer.negotiating = true; // serialize (re)negotiations to this peer
+    // As a forwarder, my own media rides this first offer → attribute it to me.
+    if (room.forwarders.includes(this.identity.publicKeyHex)) {
+      peer.fwded.add(this.identity.publicKeyHex);
+      this.sealPeer(pk, info.enc, info.relay, {
+        t: "call-fwd", callId: room.callId, streamId: room.localStream.id,
+        from: this.identity.publicKeyHex, name: this.identity.name,
+      }, `fwdself-${room.callId}-${pk}`, true);
+    }
+    peer.makingOffer = true;
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    peer.makingOffer = false;
+    this.sealPeer(pk, info.enc, info.relay, {
+      t: "call-offer", callId: room.callId, sdp: offer.sdp!, video: room.video,
+      enc: this.identity.encPublicKeyHex, name: this.identity.name,
+    }, `offer-${room.callId}-${pk}`, true);
+  }
+
+  private newPeerPc(pk: string): RTCPeerConnection {
+    const room = this.room!;
+    const info = room.dir.get(pk)!;
+    const pc = new RTCPeerConnection({ iceServers: this.iceServers });
+    for (const track of room.localStream.getTracks()) pc.addTrack(track, room.localStream);
+    pc.onicecandidate = (e) => {
+      if (e.candidate) {
+        this.sealPeer(pk, info.enc, info.relay, { t: "call-ice", callId: room.callId, candidate: e.candidate.toJSON() },
+          `ice-${room.callId}-${pk}-${randomId()}`, true);
+      }
+    };
+    pc.ontrack = (e) => this.onTrackFrom(pk, e.streams[0]);
+    pc.onconnectionstatechange = () => {
+      if (pc.connectionState === "connected") this.events.onCallState("connected");
+      else if (pc.connectionState === "failed" || pc.connectionState === "disconnected") this.dropPeer(pk);
+    };
+    room.peers.set(pk, {
+      pubkey: pk, pc, fwded: new Set(), negotiating: false, renegPending: false,
+      polite: this.identity.publicKeyHex > pk, // higher pubkey yields on a glare
+      makingOffer: false,
+    });
+    return pc;
+  }
+
+  /**
+   * A stream arrived on a peer connection. Cases:
+   *  - forwarder, from a local participant → origin is that peer (mine to relay).
+   *  - forwarder, from a peer forwarder → origin comes from its call-fwd (relay to
+   *    my locals only — never back to forwarders, so no loops).
+   *  - star/cascade participant → attribute via the host's call-fwd.
+   *  - mesh → the stream is from `pk` directly.
+   */
+  private onTrackFrom(pk: string, stream: MediaStream): void {
+    const room = this.room;
+    if (!room) return;
+    const me = this.identity.publicKeyHex;
+    const name = room.dir.get(pk)?.name ?? pk.slice(0, 6);
+
+    if (room.forwarders.includes(me)) {
+      if (room.forwarders.includes(pk)) {
+        const attr = room.fwd.get(stream.id); // relayed from a peer forwarder
+        if (!attr) room.pending.set(stream.id, stream); // wait for its call-fwd
+        else this.learnOrigin(attr.from, attr.name, stream, false);
+      } else {
+        this.learnOrigin(pk, name, stream, true); // my own local participant
+      }
+      return;
+    }
+
+    if (room.myForwarder) {
+      const attr = room.fwd.get(stream.id);
+      if (attr) this.events.onPeerStream(attr.from, attr.name, stream);
+      else room.pending.set(stream.id, stream); // wait for its call-fwd
+      return;
+    }
+
+    this.events.onPeerStream(pk, name, stream); // mesh
+  }
+
+  /** Forwarder: record an origin's media and fan it out to everyone who should see it. */
+  private learnOrigin(origin: string, name: string, stream: MediaStream, local: boolean): void {
+    const room = this.room;
+    if (!room || origin === this.identity.publicKeyHex) return; // my own rides PCs directly
+    room.origins.set(origin, { stream, name, local });
+    this.events.onPeerStream(origin, name, stream); // I (the forwarder) see the origin
+    for (const peer of room.peers.values()) this.pushOrigin(peer, origin);
+    // If the origin is one of my local participants, it just connected as a
+    // destination too → give it every other origin I already hold.
+    if (local && room.peers.has(origin)) {
+      const dest = room.peers.get(origin)!;
+      for (const o of room.origins.keys()) if (o !== origin) this.pushOrigin(dest, o);
+    }
+  }
+
+  /** Put `origin`'s media onto `peer`'s connection (with attribution) + renegotiate.
+   * Local origins go to everyone; remote origins never go back to a forwarder (loops). */
+  private pushOrigin(peer: RoomPeer, origin: string): void {
+    const room = this.room;
+    if (!room || peer.pubkey === origin || peer.fwded.has(origin)) return;
+    const o = room.origins.get(origin);
+    if (!o) return;
+    if (room.forwarders.includes(peer.pubkey) && !o.local) return; // don't loop remote origins
+    peer.fwded.add(origin);
+    for (const track of o.stream.getTracks()) peer.pc.addTrack(track, o.stream);
+    const info = room.dir.get(peer.pubkey)!;
+    this.sealPeer(peer.pubkey, info.enc, info.relay, {
+      t: "call-fwd", callId: room.callId, streamId: o.stream.id, from: origin, name: o.name,
+    }, `fwd-${room.callId}-${peer.pubkey}-${origin}`, true);
+    void this.renegotiate(peer);
+  }
+
+  /** Send a fresh offer to a peer (serialized so we never have two offers in flight). */
+  private async renegotiate(peer: RoomPeer): Promise<void> {
+    const room = this.room;
+    if (!room) return;
+    if (peer.negotiating) {
+      peer.renegPending = true;
+      return;
+    }
+    peer.negotiating = true;
+    peer.makingOffer = true;
+    const info = room.dir.get(peer.pubkey)!;
+    const offer = await peer.pc.createOffer();
+    await peer.pc.setLocalDescription(offer);
+    peer.makingOffer = false;
+    this.sealPeer(peer.pubkey, info.enc, info.relay, {
+      t: "call-offer", callId: room.callId, sdp: offer.sdp!, video: room.video,
+      enc: this.identity.encPublicKeyHex, name: this.identity.name,
+    }, `reneg-${room.callId}-${peer.pubkey}-${randomId()}`, true);
+  }
+
+  private async drainPeerIce(pk: string): Promise<void> {
+    const room = this.room;
+    const peer = room?.peers.get(pk);
+    if (!room || !peer) return;
+    const pending = room.pendingIce.get(pk);
+    if (!pending) return;
+    room.pendingIce.delete(pk);
+    for (const cand of pending) await peer.pc.addIceCandidate(cand).catch(() => {});
+  }
+
+  private dropPeer(pk: string): void {
+    const room = this.room;
+    if (!room) return;
+    room.peers.get(pk)?.pc.close();
+    room.peers.delete(pk);
+    room.pendingIce.delete(pk);
+    this.events.onPeerStream(pk, "", null);
+  }
+
+  private endRoom(reason: string): void {
+    const room = this.room;
+    if (!room) return;
+    for (const [pk, info] of room.dir) {
+      this.sealPeer(pk, info.enc, info.relay, { t: "call-leave", callId: room.callId }, `lv-${room.callId}-${pk}`, true);
+    }
+    for (const peer of room.peers.values()) peer.pc.close();
+    room.localStream.getTracks().forEach((t) => t.stop());
+    this.room = null;
+    this.events.onLocalStream(null);
+    this.events.onCallState("ended", reason);
+  }
+
+  private async onCallInvite(from: string, body: Extract<Body, { t: "call-invite" }>): Promise<void> {
+    const caller = body.roster.find((r) => r.pk === from);
+    if (this.call || this.room || this.pendingOffer || this.pendingInvite || this.pendingStart) {
+      if (caller) this.sealPeer(from, caller.enc, caller.relay, { t: "call-decline", callId: body.callId }, `dec-${body.callId}`, true);
+      return;
+    }
+    this.pendingInvite = {
+      callId: body.callId,
+      from,
+      name: caller?.name ?? from.slice(0, 6),
+      video: body.video,
+      roster: body.roster,
+      forwarder: body.forwarder,
+      forwarders: body.forwarders,
+      callerEnc: caller?.enc ?? "",
+      callerRelay: caller?.relay,
+    };
+    this.events.onCallState("ringing");
+    this.events.onIncomingCall(from, this.pendingInvite.name, body.callId, body.video, body.roster.map((r) => r.pk));
+  }
+
+  private async onCallHostOffer(from: string, body: Extract<Body, { t: "call-host-offer" }>): Promise<void> {
+    const caller = body.roster.find((r) => r.pk === from);
+    const busy = this.call || this.room || this.pendingOffer || this.pendingInvite || this.pendingStart;
+    // "Offered, not forced": v1 accepts if free (a user consent prompt is a thin
+    // layer to add here); a busy node declines and the initiator hosts it itself.
+    if (caller) {
+      this.sealPeer(from, caller.enc, caller.relay, { t: "call-host-ack", callId: body.callId, accept: !busy }, `hostack-${body.callId}`, true);
+    }
+    if (busy) return;
+    // I'm one of the forwarders → set up as a host (I'll mesh with peer forwarders
+    // and serve my assigned participants).
+    await this.beginGroupRoom(body.callId, body.video, body.roster, body.forwarders, undefined, false);
+  }
+
+  private async onCallHostAck(from: string, body: Extract<Body, { t: "call-host-ack" }>): Promise<void> {
+    const ps = this.pendingStart;
+    if (!ps || ps.callId !== body.callId || !ps.awaiting.has(from)) return;
+    if (!body.accept) {
+      // Declined → drop it from the set and reassign its participants to the rest
+      // (or to me if no forwarders remain).
+      ps.forwarders = ps.forwarders.filter((f) => f !== from);
+      const remaining = ps.forwarders.length ? ps.forwarders : [this.identity.publicKeyHex];
+      let i = 0;
+      for (const [p, f] of ps.assign) if (f === from) ps.assign.set(p, remaining[i++ % remaining.length]);
+    }
+    ps.awaiting.delete(from);
+    if (ps.awaiting.size > 0) return; // wait for the remaining co-forwarders
+    this.pendingStart = null;
+    const me = this.identity.publicKeyHex;
+    const myFwd = ps.forwarders.includes(me) ? undefined : ps.assign.get(me);
+    await this.beginGroupRoom(ps.callId, ps.video, ps.roster, ps.forwarders, myFwd, true, ps.assign);
+  }
+
+  private async onCallJoin(from: string, body: Extract<Body, { t: "call-join" }>): Promise<void> {
+    const room = this.room;
+    if (!room || room.callId !== body.callId) return;
+    room.dir.set(from, { enc: body.enc, name: body.name, relay: body.relay });
+    if (room.peers.has(from)) return; // already connecting/connected
+    const me = this.identity.publicKeyHex;
+
+    if (room.forwarders.includes(me)) {
+      // I'm a forwarder. A peer forwarder → connect via the glare rule (lower
+      // offers). A local participant → I'm their host, so I always offer.
+      if (room.forwarders.includes(from)) {
+        if (me < from) await this.offerTo(from);
+        else this.sealPeer(from, body.enc, body.relay, { t: "call-join", callId: room.callId, enc: this.identity.encPublicKeyHex, name: this.identity.name, relay: this.httpBase }, `fjb-${room.callId}-${from}-${randomId()}`, true);
+      } else {
+        await this.offerTo(from);
+      }
+      return;
+    }
+    if (room.forwarders.length) return; // participant in a star/cascade → ignore joins
+
+    // Mesh: the LOWER pubkey offers (glare-free). If that's me, offer; otherwise
+    // send a join-back so THEY offer — which also repairs the race where my
+    // earlier join reached them before they had entered the room.
+    if (me < from) {
+      await this.offerTo(from);
+    } else {
+      this.sealPeer(from, body.enc, body.relay, {
+        t: "call-join", callId: room.callId, enc: this.identity.encPublicKeyHex,
+        name: this.identity.name, relay: this.httpBase,
+      }, `joinback-${room.callId}-${from}`, true);
+    }
+  }
+
+  private async onRoomOffer(from: string, body: Extract<Body, { t: "call-offer" }>): Promise<void> {
+    const room = this.room!;
+    if (!room.dir.has(from)) room.dir.set(from, { enc: body.enc, name: body.name, relay: body.relay });
+    const pc = room.peers.get(from)?.pc ?? this.newPeerPc(from);
+    const peer = room.peers.get(from)!;
+
+    // Perfect negotiation: if their offer collides with one of mine (both forwarders
+    // relay to each other at once), the impolite peer ignores it — its own offer
+    // wins — and the polite peer rolls its offer back and takes theirs.
+    const collision = peer.makingOffer || pc.signalingState !== "stable";
+    if (collision && !peer.polite) return;
+    if (collision && peer.polite) {
+      await pc.setLocalDescription({ type: "rollback" });
+      peer.negotiating = false;
+    }
+
+    // A forwarder answering a peer forwarder → attribute my own media so it relays it on.
+    if (room.forwarders.includes(this.identity.publicKeyHex) && !peer.fwded.has(this.identity.publicKeyHex)) {
+      peer.fwded.add(this.identity.publicKeyHex);
+      this.sealPeer(from, body.enc, body.relay, {
+        t: "call-fwd", callId: room.callId, streamId: room.localStream.id,
+        from: this.identity.publicKeyHex, name: this.identity.name,
+      }, `fwdself-${room.callId}-${from}`, true);
+    }
+    await pc.setRemoteDescription({ type: "offer", sdp: body.sdp });
+    await this.drainPeerIce(from);
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    const info = room.dir.get(from)!;
+    this.sealPeer(from, info.enc, info.relay, { t: "call-answer", callId: room.callId, sdp: answer.sdp! }, `ans-${room.callId}-${from}`, true);
+
+    // If I yielded a pending offer, re-send my tracks now that we're stable again.
+    if (peer.renegPending) {
+      peer.renegPending = false;
+      void this.renegotiate(peer);
+    }
+  }
+
+  private async onRoomAnswer(from: string, body: Extract<Body, { t: "call-answer" }>): Promise<void> {
+    const peer = this.room?.peers.get(from);
+    if (!peer) return;
+    await peer.pc.setRemoteDescription({ type: "answer", sdp: body.sdp });
+    await this.drainPeerIce(from);
+    peer.negotiating = false;
+    if (peer.renegPending) {
+      peer.renegPending = false;
+      void this.renegotiate(peer);
+    }
+  }
+
+  private async onRoomIce(from: string, body: Extract<Body, { t: "call-ice" }>): Promise<void> {
+    const room = this.room!;
+    const peer = room.peers.get(from);
+    if (peer && peer.pc.remoteDescription) {
+      await peer.pc.addIceCandidate(body.candidate).catch(() => {});
+    } else {
+      const list = room.pendingIce.get(from) ?? [];
+      list.push(body.candidate);
+      room.pendingIce.set(from, list);
+    }
+  }
+
+  /** A relayed stream's origin was announced. A participant just displays it; a
+   * forwarder learns it as a remote origin and relays it on to its own cluster. */
+  private onCallFwd(body: Extract<Body, { t: "call-fwd" }>): void {
+    const room = this.room;
+    if (!room || room.callId !== body.callId) return;
+    room.fwd.set(body.streamId, { from: body.from, name: body.name });
+    const buffered = room.pending.get(body.streamId);
+    if (!buffered) return;
+    room.pending.delete(body.streamId);
+    if (room.forwarders.includes(this.identity.publicKeyHex)) {
+      this.learnOrigin(body.from, body.name, buffered, false);
+    } else {
+      this.events.onPeerStream(body.from, body.name, buffered);
+    }
+  }
+
   // --- inbound -----------------------------------------------------
 
   private async handleEnvelope(env: SealedEnvelope): Promise<void> {
@@ -452,15 +963,32 @@ export class Client {
       case "typing":
         return this.events.onTyping(from, body.on);
       case "call-offer":
+        if (this.room && this.room.callId === body.callId) return this.onRoomOffer(from, body);
         return this.onCallOffer(from, body);
       case "call-answer":
+        if (this.room && this.room.callId === body.callId) return this.onRoomAnswer(from, body);
         return this.onCallAnswer(body);
       case "call-ice":
+        if (this.room && this.room.callId === body.callId) return this.onRoomIce(from, body);
         return this.onCallIce(body);
       case "call-decline":
+        if (this.room && this.room.callId === body.callId) return; // an invitee declined; the room continues
         return this.endCall("declined");
       case "call-hangup":
         return this.endCall("ended");
+      case "call-invite":
+        return this.onCallInvite(from, body);
+      case "call-join":
+        return this.onCallJoin(from, body);
+      case "call-leave":
+        if (this.room && this.room.callId === body.callId) this.dropPeer(from);
+        return;
+      case "call-host-offer":
+        return this.onCallHostOffer(from, body);
+      case "call-host-ack":
+        return this.onCallHostAck(from, body);
+      case "call-fwd":
+        return this.onCallFwd(body);
     }
   }
 
@@ -587,7 +1115,7 @@ export class Client {
 
   private async onCallOffer(from: string, body: Extract<Body, { t: "call-offer" }>): Promise<void> {
     await this.ensureContact(from, body.enc, body.name, body.relay);
-    if (this.call || this.pendingOffer) {
+    if (this.call || this.pendingOffer || this.room || this.pendingInvite) {
       this.sealTo(from, body.enc, { t: "call-decline", callId: body.callId }, `dec-${body.callId}`, true);
       return;
     }
@@ -629,7 +1157,13 @@ export class Client {
     // The recipient's home-relay hint (if on another server) so our relay can
     // forward there. Absent/same-relay ⇒ delivered locally.
     const relay = this.contacts.get(pubkey)?.relay;
-    this.inbox.push(EVENTS.send, { to: pubkey, envelope, id, ephemeral, relay });
+    this.transport.send({ to: pubkey, envelope, id, ephemeral, relay });
+  }
+
+  /** Seal to an explicit (enc, relay) — for group-call peers who may not be contacts. */
+  private sealPeer(pubkey: string, enc: string, relay: string | undefined, body: Body, id: string, ephemeral: boolean): void {
+    const envelope = seal(this.identity.privateKey, this.identity.publicKeyHex, enc, body, Date.now());
+    this.transport.send({ to: pubkey, envelope, id, ephemeral, relay: relay ?? this.contacts.get(pubkey)?.relay });
   }
 
   private async ensureContact(

@@ -8,7 +8,8 @@
     "start": "electron .",
     "dev": "POCHTA_DEV_URL=http://localhost:5180 electron .",
     "build:web": "pnpm --filter web build",
-    "dist": "pnpm --filter web build && electron-builder"
+    "build:relay": "cd ../server && MIX_ENV=prod mix release --overwrite",
+    "dist": "pnpm run build:web && pnpm run build:relay && electron-builder"
   },
   "devDependencies": {
     "electron": "^33.3.1",
@@ -19,8 +20,15 @@
     "productName": "Pochta",
     "directories": { "output": "out", "buildResources": "build" },
     "files": ["main.js", "preload.js", "build/icon.png"],
-    "extraResources": [{ "from": "../web/dist", "to": "web" }],
-    "mac": { "category": "public.app-category.social-networking", "target": ["dmg"] },
+    "extraResources": [
+      { "from": "../web/dist", "to": "web" },
+      { "from": "../server/_build/prod/rel/pochta", "to": "pochta" }
+    ],
+    "mac": {
+      "category": "public.app-category.social-networking",
+      "target": ["dmg"],
+      "identity": null
+    },
     "win": { "target": ["nsis"] },
     "linux": { "target": ["AppImage"], "category": "Network" }
   }

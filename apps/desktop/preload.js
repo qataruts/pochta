@@ -1,11 +1,11 @@
-// The bridge that makes the Host switch real. In a plain browser `window.pochta`
+// The bridge that makes the Host switch real. In a plain browser `window.vox`
 // is undefined, so the web client stays a pure client — only the desktop app can
 // host. There is ONE role: a host helps run the network (carries its own circle's
 // sealed mail, and forwards encrypted traffic for big meetings when its connection
 // can spare it). A host only ever sees ciphertext. contextIsolation-safe.
 const { contextBridge, ipcRenderer } = require("electron");
 
-contextBridge.exposeInMainWorld("pochta", {
+contextBridge.exposeInMainWorld("vox", {
   isDesktop: true,
   platform: process.platform,
 
@@ -20,8 +20,8 @@ contextBridge.exposeInMainWorld("pochta", {
   // Live pushes when host status changes. Returns an unsubscribe fn.
   onStatus: (cb) => {
     const handler = (_e, s) => cb(s);
-    ipcRenderer.on("pochta:status", handler);
-    return () => ipcRenderer.removeListener("pochta:status", handler);
+    ipcRenderer.on("vox:status", handler);
+    return () => ipcRenderer.removeListener("vox:status", handler);
   },
 
   // OS-keychain-backed store for account vaults (Electron safeStorage). Synchronous

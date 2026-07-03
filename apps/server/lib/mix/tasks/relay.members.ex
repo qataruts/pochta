@@ -9,19 +9,19 @@ defmodule Mix.Tasks.Relay.Members do
   use Mix.Task
 
   def run(args) do
-    Pochta.Release.boot_repo()
+    Vox.Release.boot_repo()
 
     case args do
       ["add", pubkey] ->
-        Pochta.Admin.add_member(pubkey)
+        Vox.Admin.add_member(pubkey)
         IO.puts("added #{pubkey}")
 
       ["remove", pubkey] ->
-        Pochta.Admin.remove_member(pubkey)
+        Vox.Admin.remove_member(pubkey)
         IO.puts("removed #{pubkey}")
 
       _ ->
-        members = Pochta.Admin.list_members()
+        members = Vox.Admin.list_members()
         IO.puts("#{length(members)} member(s):")
         Enum.each(members, &IO.puts("  #{&1}"))
     end

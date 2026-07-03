@@ -1,5 +1,5 @@
-import { inviteToken as makeToken, parseInvite } from "@pochta-chat/sdk";
-import type { Identity } from "@pochta-chat/sdk";
+import { inviteToken as makeToken, parseInvite } from "@elementaio/vox-sdk";
+import type { Identity } from "@elementaio/vox-sdk";
 import { httpBase } from "./server";
 
 /**

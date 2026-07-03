@@ -12,40 +12,40 @@ import Config
 # If you use `mix release`, you need to explicitly enable the server
 # by passing the PHX_SERVER=true when you start it:
 #
-#     PHX_SERVER=true bin/pochta start
+#     PHX_SERVER=true bin/vox start
 #
 # Alternatively, you can use `mix phx.gen.release` to generate a `bin/server`
 # script that automatically sets the env var above.
 if System.get_env("PHX_SERVER") do
-  config :pochta, PochtaWeb.Endpoint, server: true
+  config :vox, VoxWeb.Endpoint, server: true
 end
 
-config :pochta, PochtaWeb.Endpoint,
+config :vox, VoxWeb.Endpoint,
   http: [port: String.to_integer(System.get_env("PORT", "4000"))]
 
 # Per-instance SQLite path (lets you run multiple relays from one build, e.g. to
 # test federation). Applies in any env when set.
 if db = System.get_env("DATABASE_PATH") do
-  config :pochta, Pochta.Repo, database: db, journal_mode: :wal
+  config :vox, Vox.Repo, database: db, journal_mode: :wal
 end
 
 # Private-network knobs (runtime so a self-hoster sets them via env):
 if System.get_env("FEDERATION_MODE") == "closed",
-  do: config(:pochta, :federation_mode, :closed)
+  do: config(:vox, :federation_mode, :closed)
 
 if System.get_env("MEMBERSHIP_MODE") == "invite",
-  do: config(:pochta, :membership_mode, :invite)
+  do: config(:vox, :membership_mode, :invite)
 
-if token = System.get_env("ADMIN_TOKEN"), do: config(:pochta, :admin_token, token)
+if token = System.get_env("ADMIN_TOKEN"), do: config(:vox, :admin_token, token)
 
 if rl = System.get_env("FEDERATION_RATE_LIMIT"),
-  do: config(:pochta, :federation_rate_limit, String.to_integer(rl))
+  do: config(:vox, :federation_rate_limit, String.to_integer(rl))
 
 # Self-hosted TURN (coturn): comma-separated URLs + the shared secret.
 if urls = System.get_env("TURN_URLS"),
-  do: config(:pochta, :turn_urls, String.split(urls, ",", trim: true))
+  do: config(:vox, :turn_urls, String.split(urls, ",", trim: true))
 
-if s = System.get_env("TURN_SECRET"), do: config(:pochta, :turn_secret, s)
+if s = System.get_env("TURN_SECRET"), do: config(:vox, :turn_secret, s)
 
 if config_env() == :prod do
   # The secret key base is used to sign/encrypt cookies and other secrets.
@@ -65,14 +65,14 @@ if config_env() == :prod do
   # Durable store for the engine ports. SQLite on disk by default (plug-and-play
   # self-host); point DATABASE_PATH at a persistent volume. For a large relay,
   # set ecto_adapter to Postgres and give this Repo url/credentials instead.
-  config :pochta, Pochta.Repo,
+  config :vox, Vox.Repo,
     database: System.get_env("DATABASE_PATH") || "/data/chat.db",
     journal_mode: :wal,
     pool_size: String.to_integer(System.get_env("POOL_SIZE") || "5")
 
-  config :pochta, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
+  config :vox, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
-  config :pochta, PochtaWeb.Endpoint,
+  config :vox, VoxWeb.Endpoint,
     url: [host: host, port: 443, scheme: "https"],
     http: [
       # Enable IPv6 and bind on all interfaces.
@@ -88,7 +88,7 @@ if config_env() == :prod do
   # To get SSL working, you will need to add the `https` key
   # to your endpoint configuration:
   #
-  #     config :pochta, PochtaWeb.Endpoint,
+  #     config :vox, VoxWeb.Endpoint,
   #       https: [
   #         ...,
   #         port: 443,
@@ -110,7 +110,7 @@ if config_env() == :prod do
   # We also recommend setting `force_ssl` in your config/prod.exs,
   # ensuring no data is ever sent via http, always redirecting to https:
   #
-  #     config :pochta, PochtaWeb.Endpoint,
+  #     config :vox, VoxWeb.Endpoint,
   #       force_ssl: [hsts: true]
   #
   # Check `Plug.SSL` for all available options in `force_ssl`.

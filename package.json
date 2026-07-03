@@ -1,5 +1,5 @@
 {
-  "name": "webrtc-chat",
+  "name": "vox",
   "version": "0.0.1",
   "private": true,
   "description": "P2P chat + voice/video over WebRTC. Server relays signaling only; content stays peer-to-peer.",

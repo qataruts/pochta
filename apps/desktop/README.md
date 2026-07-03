@@ -1,10 +1,10 @@
-# Pochta desktop (Electron)
+# Vox desktop (Electron)
 
-The Pochta messenger as a native desktop window for **Windows, macOS, and Linux**.
+The Vox messenger as a native desktop window for **Windows, macOS, and Linux**.
 
 ## Why Electron (not Tauri)
 
-Pochta has **voice/video calls (WebRTC)** and camera/mic access (`getUserMedia`).
+Vox has **voice/video calls (WebRTC)** and camera/mic access (`getUserMedia`).
 Tauri renders in the OS webview — WKWebView / WebView2 / **WebKitGTK on Linux** —
 and WebKitGTK's WebRTC/`mediaDevices` support is inconsistent, which a calls app
 can't rely on. Electron bundles **Chromium**, so WebRTC behaves identically on all
@@ -39,7 +39,7 @@ electron-builder must run **on** (or cross-build for) each target OS; code-signi
 
 ## First launch
 
-The desktop client is a **frontend** — it connects to a Pochta **relay** you
+The desktop client is a **frontend** — it connects to a Vox **relay** you
 choose. On first run, open the server picker and enter your relay address
 (e.g. `wss://chat.myfamily.com`), or run your own relay (see the repo README →
 "Run your own"). Your identity and history stay on the device, as always.

@@ -2,9 +2,9 @@ import type { Dictionary } from "@/lib/i18n";
 import { LINKS } from "@/lib/links";
 import { IconCheck, IconNpm, IconDoc, IconGitHub } from "@/components/icons";
 
-const SDK_CODE = `<span class="pr">$</span> npm i @pochta-chat/sdk
+const SDK_CODE = `<span class="pr">$</span> npm i @elementaio/vox-sdk
 
-<span class="kw">import</span> { createIdentity, Client } <span class="kw">from</span> <span class="st">"@pochta-chat/sdk"</span>;
+<span class="kw">import</span> { createIdentity, Client } <span class="kw">from</span> <span class="st">"@elementaio/vox-sdk"</span>;
 
 <span class="cm">// your key + 12 backup words — no account server</span>
 <span class="kw">const</span> me = <span class="kw">await</span> <span class="fn">createIdentity</span>();
@@ -14,9 +14,9 @@ const SDK_CODE = `<span class="pr">$</span> npm i @pochta-chat/sdk
 <span class="kw">await</span> client.<span class="fn">send</span>(to, { type: <span class="st">"text"</span>, text: <span class="st">"hi 📮"</span> });`;
 
 const RELAY_CODE = `<span class="cm"># one image bundles the relay, web client + storage</span>
-docker run -p 4000:4000 -v pochta-data:/data \\
+docker run -p 4000:4000 -v vox-data:/data \\
   -e SECRET_KEY_BASE=$(openssl rand -base64 48) \\
-  pochta-relay
+  vox-relay
 
 <span class="cm"># → open http://localhost:4000</span>`;
 

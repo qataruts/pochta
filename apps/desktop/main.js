@@ -5,7 +5,7 @@ const fs = require("node:fs");
 const net = require("node:net");
 const crypto = require("node:crypto");
 
-// Pochta desktop is a CLIENT by default — it just loads the web client. No relay
+// Vox desktop is a CLIENT by default — it just loads the web client. No relay
 // runs until you turn Host on. There is ONE role: a host helps run the network —
 // its own circle's sealed mail, and (roadmap) forwarding for big meetings when its
 // connection can spare it. This is the old-Skype idea (any machine can be a host so
@@ -27,15 +27,15 @@ function hostStatus() {
 
 function broadcastStatus() {
   const payload = { host: hostStatus() };
-  for (const w of BrowserWindow.getAllWindows()) w.webContents.send("pochta:status", payload);
+  for (const w of BrowserWindow.getAllWindows()) w.webContents.send("vox:status", payload);
 }
 
-// The bundled release binary: packaged → resources/pochta/bin ; dev → repo build.
+// The bundled release binary: packaged → resources/vox/bin ; dev → repo build.
 function relayBin() {
-  const rel = winBin ? "bin/pochta.bat" : "bin/pochta";
+  const rel = winBin ? "bin/vox.bat" : "bin/vox";
   return app.isPackaged
-    ? path.join(process.resourcesPath, "pochta", rel)
-    : path.join(__dirname, "..", "server", "_build", "prod", "rel", "pochta", rel);
+    ? path.join(process.resourcesPath, "vox", rel)
+    : path.join(__dirname, "..", "server", "_build", "prod", "rel", "vox", rel);
 }
 
 function freePort() {
@@ -169,7 +169,7 @@ ipcMain.on("secure:remove", (e, key) => {
 
 // --- Window ----------------------------------------------------------------
 
-const DEV_URL = process.env.POCHTA_DEV_URL || "http://localhost:5180";
+const DEV_URL = process.env.VOX_DEV_URL || "http://localhost:5180";
 const clientEntry = () => path.join(process.resourcesPath, "web", "index.html");
 
 function createWindow() {
@@ -178,7 +178,7 @@ function createWindow() {
     height: 720,
     minWidth: 380,
     minHeight: 560,
-    title: "Pochta",
+    title: "Vox",
     backgroundColor: "#0f1115",
     icon: path.join(__dirname, "build", "icon.png"),
     webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: true },
@@ -193,7 +193,7 @@ function createWindow() {
   });
 
   // Smoke check for CI: quit right after the client renders.
-  if (process.env.POCHTA_SMOKE) {
+  if (process.env.VOX_SMOKE) {
     win.webContents.once("did-finish-load", () => {
       setTimeout(() => app.quit(), 500);
     });

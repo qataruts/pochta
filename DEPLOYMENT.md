@@ -1,6 +1,6 @@
-# Pochta deployment — self-host any part, choose your quality
+# Vox deployment — self-host any part, choose your quality
 
-Pochta ships **every service as a ready-to-host building block.** You choose which
+Vox ships **every service as a ready-to-host building block.** You choose which
 ones to run — and that choice *is* your network's quality and independence. Nothing
 depends on a central company: a "provider" is just a *full* deployment that others
 can optionally borrow the heavy, content-blind pieces from. Run all of it, run one
@@ -10,7 +10,7 @@ piece, or mix — your call.
 
 | Service | What it does | Sees messages? | Weight |
 |---|---|---|---|
-| **Chat relay** (Pochta / Elixir) | signaling + sealed store-and-forward + serves the client + federation + media blobs | **No** — ciphertext only | light · **required** |
+| **Chat relay** (Vox / Elixir) | signaling + sealed store-and-forward + serves the client + federation + media blobs | **No** — ciphertext only | light · **required** |
 | **STUN** | peers discover their public address for a call | No — an IP query | tiny |
 | **TURN** | relays call **media** when direct P2P fails (strict/cellular NAT) | **No** — media is SRTP-encrypted | **bandwidth-heavy** |
 | **Push gateway** | "wake device X" → an APNs/FCM push | **No** — contentless ping | tiny |
@@ -99,7 +99,7 @@ for STUN/TURN/push.
 
 ```sh
 cd apps/server && MIX_ENV=prod mix release       # one-time build (needs Elixir)
-./scripts/pochta-server.sh                        # http://localhost:4000  (Windows: .bat)
+./scripts/vox-server.sh                        # http://localhost:4000  (Windows: .bat)
 ```
 
 ## Push notifications (the one that needs store credentials)

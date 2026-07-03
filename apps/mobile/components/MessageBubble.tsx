@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
-import type { StoredMessage } from "@pochta-chat/sdk";
+import type { StoredMessage } from "@elementaio/vox-sdk";
 import { colors, radius } from "../constants/theme";
 import { useLocales } from "../locales";
 

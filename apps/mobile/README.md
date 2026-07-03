@@ -1,7 +1,7 @@
-# Pochta mobile (Expo Router)
+# Vox mobile (Expo Router)
 
-The Pochta messenger on **iOS + Android**, built on the published
-[`@pochta-chat/sdk`](https://www.npmjs.com/package/@pochta-chat/sdk) — the same core
+The Vox messenger on **iOS + Android**, built on the published
+[`@elementaio/vox-sdk`](https://www.npmjs.com/package/@elementaio/vox-sdk) — the same core
 the web and desktop apps use. **Expo SDK 57 · Expo Router · English/Arabic (RTL).**
 Fork it to ship your own branded app.
 
@@ -44,7 +44,7 @@ npm install
 npx expo run:ios      # or: npx expo run:android   (a dev build — MMKV/WebRTC are native)
 ```
 
-On first launch: create an account, then enter your Pochta relay address. Identity
+On first launch: create an account, then enter your Vox relay address. Identity
 and history stay on the device.
 
 ## Security note

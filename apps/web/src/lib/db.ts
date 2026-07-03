@@ -2,7 +2,7 @@ import { openDB, deleteDB, type DBSchema, type IDBPDatabase } from "idb";
 import { xchacha20poly1305 } from "@noble/ciphers/chacha.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { randomBytes } from "@noble/hashes/utils.js";
-import type { MediaRef, MessageStatus, StoredContact, StoredMessage, Store } from "@pochta-chat/sdk";
+import type { MediaRef, MessageStatus, StoredContact, StoredMessage, Store } from "@elementaio/vox-sdk";
 
 /**
  * On-device storage. This is where history actually lives — the server is a
@@ -71,7 +71,7 @@ function decBytes(blob: string): Uint8Array {
 
 // The message/contact/media data model is the SDK's shared contract; re-exported
 // here so existing app imports (`./lib/db`) keep resolving unchanged.
-export type { MediaRef, MessageStatus, StoredContact, StoredMessage } from "@pochta-chat/sdk";
+export type { MediaRef, MessageStatus, StoredContact, StoredMessage } from "@elementaio/vox-sdk";
 
 // On-disk row: text and the media ref are stored as ciphertext strings.
 type Row = Omit<StoredMessage, "text" | "media"> & { text: string; mediaEnc?: string };

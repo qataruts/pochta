@@ -9,21 +9,21 @@ defmodule Mix.Tasks.Relay.Peers do
   use Mix.Task
 
   def run(args) do
-    Pochta.Release.boot_repo()
+    Vox.Release.boot_repo()
 
     case args do
       ["allow", origin] ->
-        case Pochta.Admin.allow_relay(origin) do
+        case Vox.Admin.allow_relay(origin) do
           {:ok, pub} -> IO.puts("allowed #{origin} (#{pub})")
           _ -> IO.puts("could not reach #{origin}/federation/identity")
         end
 
       ["revoke", pubkey] ->
-        Pochta.Admin.revoke_relay(pubkey)
+        Vox.Admin.revoke_relay(pubkey)
         IO.puts("revoked #{pubkey}")
 
       _ ->
-        relays = Pochta.Admin.list_relays()
+        relays = Vox.Admin.list_relays()
         IO.puts("#{length(relays)} peer relay(s):")
 
         Enum.each(relays, fn r ->

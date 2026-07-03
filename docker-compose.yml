@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: pochta_dev
+      POSTGRES_DB: vox_dev
     ports:
       - "5432:5432"
     volumes:

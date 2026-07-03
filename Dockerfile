@@ -4,9 +4,9 @@
 # single small image. `docker build` needs no Elixir/Node/pnpm on the host and
 # no external paths — chat_engine is fetched by tag from github.com/elementaio/engine.
 #
-#   docker build -t pochta-relay .
+#   docker build -t vox-relay .
 #   docker run -p 4000:4000 -v chat-data:/data \
-#     -e SECRET_KEY_BASE=$(openssl rand -base64 48) pochta-relay
+#     -e SECRET_KEY_BASE=$(openssl rand -base64 48) vox-relay
 #
 # Then open http://localhost:4000 — the relay serves the client same-origin.
 
@@ -24,7 +24,7 @@ ENV npm_config_minimum_release_age=0
 # Manifests first, so `pnpm install` is cached until deps actually change.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/web/package.json apps/web/
-# The web app depends on the @pochta-chat/sdk workspace package; bring it in so
+# The web app depends on the @elementaio/vox-sdk workspace package; bring it in so
 # the workspace install links it (and its deps) and the build can resolve it.
 COPY packages packages
 RUN pnpm install --frozen-lockfile --filter web...
@@ -67,7 +67,7 @@ WORKDIR /app
 
 # Persistent data: SQLite delivery buffer + the relay's Ed25519 identity key.
 RUN mkdir -p /data && chown nobody:nogroup /data
-COPY --from=build --chown=nobody:nogroup /app/_build/prod/rel/pochta ./
+COPY --from=build --chown=nobody:nogroup /app/_build/prod/rel/vox ./
 
 USER nobody
 # Sensible self-host defaults; override any at `docker run -e ...`.
@@ -77,4 +77,4 @@ ENV PHX_SERVER=true \
     RELAY_KEY_PATH=/data/relay_identity.key
 EXPOSE 4000
 VOLUME /data
-CMD ["/app/bin/pochta", "start"]
+CMD ["/app/bin/vox", "start"]

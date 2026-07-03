@@ -1,19 +1,19 @@
-# @pochta-chat/sdk
+# @elementaio/vox-sdk
 
-The framework-agnostic client SDK for **[Pochta](https://pochta.uts.qa)** — a
+The framework-agnostic client SDK for **[Vox](https://vox.uts.qa)** — a
 self-hosted, end-to-end-encrypted messenger where the relay is a *post office, not
 an archive*.
 
-This package is everything a client needs to speak the [Pochta protocol](../../PROTOCOL.md):
+This package is everything a client needs to speak the [Vox protocol](../../PROTOCOL.md):
 self-owned identity, sign-then-seal E2E crypto, the relay transport + all message
 operations (text, edit/delete/react/reply, receipts, typing), voice/video call
 signaling, and encrypted media. It ships **no storage engine and no UI** — you
 inject those — so the same core runs a web app, a desktop/mobile app, or a
 headless bot.
 
-> **Published on npm** as `@pochta-chat/sdk` (ESM + type declarations, built with
+> **Published on npm** as `@elementaio/vox-sdk` (ESM + type declarations, built with
 > tsup). Also a workspace package (`packages/sdk`) that the in-repo web app consumes
-> via a `@pochta-chat/sdk` alias to its TypeScript source. `npm i @pochta-chat/sdk`.
+> via a `@elementaio/vox-sdk` alias to its TypeScript source. `npm i @elementaio/vox-sdk`.
 
 ## What you inject
 
@@ -32,7 +32,7 @@ The SDK never imports a database, a UI framework, or a hardcoded server address.
 import {
   createIdentity, Vault, Client,
   type Identity, type Store, type ClientEvents,
-} from "@pochta-chat/sdk";
+} from "@elementaio/vox-sdk";
 
 // 1. Identity (self-owned keypair; 12-word backup). Persist it under a passphrase.
 const id: Identity = createIdentity();
@@ -53,7 +53,7 @@ const client = new Client({
   deviceId: vault.deviceId(),
 });
 client.connect(await loadContacts());
-await client.sendText(recipientPubkeyHex, "Hello over Pochta 👋");
+await client.sendText(recipientPubkeyHex, "Hello over Vox 👋");
 ```
 
 ## Surface

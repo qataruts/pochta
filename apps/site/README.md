@@ -1,6 +1,6 @@
-# Pochta marketing website
+# Vox marketing website
 
-The landing page for **[pochta.uts.qa](https://pochta.uts.qa)** — a bilingual
+The landing page for **[vox.uts.qa](https://vox.uts.qa)** — a bilingual
 (English + Arabic) marketing site built with **Next.js 15 (App Router)** and
 TypeScript.
 
@@ -59,7 +59,7 @@ Default **light**, with a **soft dark** theme (slate/near-navy, not pure black).
 Implemented with CSS variables and a `.dark` class on `<html>`. An inline script
 (`components/theme-script.tsx`, first child of `<body>`) applies the stored choice
 before paint, so there's **no flash of the wrong theme**. The choice is persisted
-in `localStorage` (`pochta-theme`); with no stored choice the site defaults to
+in `localStorage` (`vox-theme`); with no stored choice the site defaults to
 light. `color-scheme` is set so native controls match the active theme.
 
 ## Fonts
@@ -86,13 +86,12 @@ must add it to the other or the build fails — the two locales can't drift.
 ## Deploy
 
 `npm run build` produces a standard Next.js server build. Deploy to any Node host
-or a platform that runs Next (e.g. Vercel), then point `pochta.uts.qa` at it. The
+or a platform that runs Next (e.g. Vercel), then point `vox.uts.qa` at it. The
 root-path redirect uses middleware, so a plain static-file host is not sufficient
 on its own; use a Next-aware runtime.
 
 ## Brand
 
-`components/logo.tsx` / `public/logo.svg` / `app/icon.svg` are the Pochta mark:
-the Cyrillic **П** (first letter of _почта_) as a post-office doorway with a mail
-slot, in white on a blue squircle. Primary accent: blue `#4f8cff` (buttons use a
+`components/logo.tsx` / `public/logo.svg` / `app/icon.svg` are the Vox mark:
+a voice waveform — five rounded bars rising and falling like speech, slot, in white on a blue squircle. Primary accent: blue `#4f8cff` (buttons use a
 higher-contrast `#2563eb`).

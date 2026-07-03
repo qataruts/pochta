@@ -2,7 +2,7 @@ import { useLocales } from "./locales";
 import type { AccountRef } from "./lib/identity";
 
 /**
- * "Who's using Pochta?" — the return screen when this device holds one or more
+ * "Who's using Vox?" — the return screen when this device holds one or more
  * accounts. Pick a name to unlock, add another, or remove one from the device.
  * Signing out lands here; nobody's data is wiped by switching.
  */

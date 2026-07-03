@@ -9,9 +9,9 @@ export function Header({ lang, dict }: { lang: Locale; dict: Dictionary }) {
   return (
     <header className="site-header">
       <div className="container nav">
-        <a className="brand" href={`/${lang}`} aria-label="Pochta">
+        <a className="brand" href={`/${lang}`} aria-label="Vox">
           <Logo size={32} className="brand-mark" />
-          <span>Pochta</span>
+          <span>Vox</span>
         </a>
 
         <nav className="nav-links" aria-label="Primary">

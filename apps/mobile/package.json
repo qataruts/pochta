@@ -1,8 +1,8 @@
 {
-  "name": "pochta-mobile",
+  "name": "vox-mobile",
   "version": "0.1.0",
   "private": true,
-  "description": "Pochta mobile app (Expo Router, SDK 57) — the messenger on iOS + Android, built on @pochta-chat/sdk.",
+  "description": "Vox mobile app (Expo Router, SDK 57) — the messenger on iOS + Android, built on @elementaio/vox-sdk.",
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@pochta-chat/sdk": "^0.1.1",
+    "@elementaio/vox-sdk": "^0.1.1",
     "@noble/hashes": "^2.2.0",
     "expo": "^57.0.1",
     "expo-constants": "~57.0.2",

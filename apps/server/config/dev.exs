@@ -1,10 +1,10 @@
 import Config
 
 # SQLite on disk for the durable engine ports — no external DB to run.
-# (To use Postgres instead: set `config :pochta, ecto_adapter: Ecto.Adapters.Postgres`
+# (To use Postgres instead: set `config :vox, ecto_adapter: Ecto.Adapters.Postgres`
 #  and give this Repo username/password/hostname/database — see docker-compose.yml.)
-config :pochta, Pochta.Repo,
-  database: Path.expand("../pochta_dev.db", __DIR__),
+config :vox, Vox.Repo,
+  database: Path.expand("../vox_dev.db", __DIR__),
   journal_mode: :wal,
   pool_size: 5
 
@@ -14,7 +14,7 @@ config :pochta, Pochta.Repo,
 # The watchers configuration can be used to run external
 # watchers to your application. For example, we can use it
 # to bundle .js and .css sources.
-config :pochta, PochtaWeb.Endpoint,
+config :vox, VoxWeb.Endpoint,
   # Binding to loopback ipv4 address prevents access from other machines.
   # Change to `ip: {0, 0, 0, 0}` to allow access from other machines.
   http: [ip: {127, 0, 0, 1}],
@@ -48,7 +48,7 @@ config :pochta, PochtaWeb.Endpoint,
 # different ports.
 
 # Enable dev routes for dashboard and mailbox
-config :pochta, dev_routes: true
+config :vox, dev_routes: true
 
 # Do not include metadata nor timestamps in development logs
 config :logger, :default_formatter, format: "[$level] $message\n"

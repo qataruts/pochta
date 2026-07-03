@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text } from "react-native";
-import type { StoredContact } from "@pochta-chat/sdk";
+import type { StoredContact } from "@elementaio/vox-sdk";
 import { colors } from "../constants/theme";
 
 export function ContactRow({

@@ -12,7 +12,7 @@
     /* Bundler mode */
     "moduleResolution": "bundler",
     "paths": {
-      "@pochta-chat/sdk": ["../../packages/sdk/src/index.ts"]
+      "@elementaio/vox-sdk": ["../../packages/sdk/src/index.ts"]
     },
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,

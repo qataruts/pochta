@@ -1,18 +1,18 @@
-<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Pochta">
-  <title>Pochta</title>
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Vox">
+  <title>Vox</title>
   <defs>
-    <linearGradient id="pochtaGrad" x1="64" y1="48" x2="448" y2="470" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#FB5A73"/>
-      <stop offset="0.55" stop-color="#E11D48"/>
-      <stop offset="1" stop-color="#BE123C"/>
+    <linearGradient id="voxGrad" x1="72" y1="56" x2="452" y2="472" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6ea0ff"/>
+      <stop offset="0.5" stop-color="#4f8cff"/>
+      <stop offset="1" stop-color="#2f6fe6"/>
     </linearGradient>
   </defs>
-  <!-- postal-red squircle tile -->
-  <rect x="16" y="16" width="480" height="480" rx="116" fill="url(#pochtaGrad)"/>
-  <rect x="16.5" y="16.5" width="479" height="479" rx="115.5" fill="none" stroke="#000" stroke-opacity="0.06"/>
-  <!-- the Cyrillic П (Pe) — the doorway of a post office -->
-  <path d="M150 374 L150 202 Q150 150 202 150 L310 150 Q362 150 362 202 L362 374 L300 374 L300 210 L212 210 L212 374 Z"
-        fill="#fff"/>
-  <!-- a mail slot cut into the crossbar -->
-  <rect x="218" y="171" width="76" height="17" rx="8.5" fill="#BE123C"/>
+  <rect x="16" y="16" width="480" height="480" rx="120" fill="url(#voxGrad)"/>
+  <rect x="16.5" y="16.5" width="479" height="479" rx="119.5" fill="none" stroke="#000" stroke-opacity="0.06"/>
+  <!-- Vox voice waveform -->
+  <rect x="97"  y="190" width="46" height="132" rx="23" fill="#fff"/>
+  <rect x="165" y="140" width="46" height="232" rx="23" fill="#fff"/>
+  <rect x="233" y="106" width="46" height="300" rx="23" fill="#fff"/>
+  <rect x="301" y="152" width="46" height="208" rx="23" fill="#fff"/>
+  <rect x="369" y="182" width="46" height="148" rx="23" fill="#fff"/>
 </svg>

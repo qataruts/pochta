@@ -1,5 +1,5 @@
-import { enroll as sdkEnroll } from "@pochta-chat/sdk";
-import type { Identity } from "@pochta-chat/sdk";
+import { enroll as sdkEnroll } from "@elementaio/vox-sdk";
+import type { Identity } from "@elementaio/vox-sdk";
 import { httpBase } from "./server";
 
 /**

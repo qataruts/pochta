@@ -11,8 +11,8 @@ export default defineConfig({
   resolve: {
     alias: {
       // Consume the workspace SDK (packages/sdk) by its package name, from TS
-      // source. Flip this to the real node_module when @pochta-chat/sdk ships to npm.
-      '@pochta-chat/sdk': fileURLToPath(new URL('../../packages/sdk/src/index.ts', import.meta.url)),
+      // source. Flip this to the real node_module when @elementaio/vox-sdk ships to npm.
+      '@elementaio/vox-sdk': fileURLToPath(new URL('../../packages/sdk/src/index.ts', import.meta.url)),
     },
   },
 })

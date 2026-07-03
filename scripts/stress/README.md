@@ -3,7 +3,7 @@
 Validates the zero-server group-call architecture (mesh → elected forwarder →
 multi-forwarder sharding) with **real headless Chromium + real WebRTC** (fake
 camera) against a running relay. Each participant is a browser page driving
-`@pochta-chat/sdk` directly (no UI); the harness taps every RTCPeerConnection's
+`@elementaio/vox-sdk` directly (no UI); the harness taps every RTCPeerConnection's
 `getStats()` for framerate/bandwidth and tracks join latency.
 
 ## Run

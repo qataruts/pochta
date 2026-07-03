@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { StyleSheet, Text as RNText } from "react-native";
 import { router } from "expo-router";
-import { createIdentity, restoreIdentity, type Identity } from "@pochta-chat/sdk";
+import { createIdentity, restoreIdentity, type Identity } from "@elementaio/vox-sdk";
 import { Button, Centered, Input, Link, Screen, Text } from "../../components";
 import { useLocales } from "../../locales";
 import { useAuth } from "../../contexts";
@@ -43,7 +43,7 @@ export default function Welcome() {
   return (
     <Screen>
       <Centered>
-        <Text variant="brand">📮 Pochta</Text>
+        <Text variant="brand">📮 Vox</Text>
         <Text variant="sub">{t("onboarding.tagline")}</Text>
 
         {mode === "choose" && (

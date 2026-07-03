@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { FlatList, Pressable, StyleSheet, Text as RNText, TextInput, View } from "react-native";
 import { router } from "expo-router";
-import { parseInvite } from "@pochta-chat/sdk";
+import { parseInvite } from "@elementaio/vox-sdk";
 import { Button, Centered, ContactRow, Input, Link, Screen, Text } from "../../components";
 import { useLocales } from "../../locales";
 import { useAuth, useMessenger } from "../../contexts";
@@ -30,7 +30,7 @@ export default function Chats() {
     return (
       <Screen>
         <Centered>
-          <Text variant="brand">📮 Pochta</Text>
+          <Text variant="brand">📮 Vox</Text>
           <Text variant="title">{t("chat.connectRelay")}</Text>
           <Text variant="muted">{t("chat.relayHint")}</Text>
           <Input

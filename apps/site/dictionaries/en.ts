@@ -1,9 +1,9 @@
 export const en = {
   meta: {
-    title: "Pochta — private chat, voice & video you own",
+    title: "Vox — private chat, voice & video you own",
     description:
-      "Pochta is a private messaging app: chat and call end-to-end encrypted, with no phone number, no email, and no company in the middle. Get the desktop app, or build on the @pochta-chat/sdk.",
-    ogAlt: "Pochta — a private messenger you actually own.",
+      "Vox is a private messaging app: chat and call end-to-end encrypted, with no phone number, no email, and no company in the middle. Get the desktop app, or build on the @elementaio/vox-sdk.",
+    ogAlt: "Vox — a private messenger you actually own.",
   },
 
   a11y: {
@@ -27,7 +27,7 @@ export const en = {
     badge: "Private messenger · chat, voice & video",
     title: "Private chat, voice & video — that you actually own.",
     subtitle:
-      "Pochta is a messaging app: chat and call your people, end-to-end encrypted. No phone number, no email, no company in the middle. Your account is a key on your device, and the network runs on people's own computers — so nobody can read you, lock you out, or shut it down.",
+      "Vox is a messaging app: chat and call your people, end-to-end encrypted. No phone number, no email, no company in the middle. Your account is a key on your device, and the network runs on people's own computers — so nobody can read you, lock you out, or shut it down.",
     ctaPrimary: "Get the desktop app",
     ctaSecondary: "For developers",
     microcopy: "No phone number · No email · No account server",
@@ -35,10 +35,10 @@ export const en = {
       "No company servers",
       "Keys on your device",
       "MIT licensed",
-      "npm i @pochta-chat/sdk",
+      "npm i @elementaio/vox-sdk",
     ],
     mockup: {
-      appName: "Pochta",
+      appName: "Vox",
       hostPill: "Host: on",
       search: "Search",
       chats: "Chats",
@@ -58,7 +58,7 @@ export const en = {
   },
 
   twoWays: {
-    eyebrow: "Two ways to use Pochta",
+    eyebrow: "Two ways to use Vox",
     title: "A product for people. A toolkit for builders.",
     lead: "The same end-to-end core, two audiences. Use the apps if you just want a private messenger. Use the tools if you want to build your own chat network.",
     product: {
@@ -69,7 +69,7 @@ export const en = {
           platforms: "Windows · macOS · Linux",
           flag: "Flagship",
           badge: "Client + Host",
-          desc: "Your messenger and your on-ramp to the network. A client by default — flip Host on and it helps run Pochta for everyone.",
+          desc: "Your messenger and your on-ramp to the network. A client by default — flip Host on and it helps run Vox for everyone.",
         },
         {
           name: "Web",
@@ -93,7 +93,7 @@ export const en = {
       label: "The dev tools — build your own",
       items: [
         {
-          name: "@pochta-chat/sdk",
+          name: "@elementaio/vox-sdk",
           badge: "npm",
           desc: "The end-to-end client core — identity, sign-then-seal crypto, transport, and every message op. Build any app on it; it ships no UI and no database.",
         },
@@ -110,7 +110,7 @@ export const en = {
   host: {
     eyebrow: "No company servers",
     title: "Anyone can host — old Skype, done right.",
-    lead: "Old Skype quietly turned users' machines into relays, then a company moved everything onto its own servers. Pochta brings back “anyone can host” — but consented and encrypted.",
+    lead: "Old Skype quietly turned users' machines into relays, then a company moved everything onto its own servers. Vox brings back “anyone can host” — but consented and encrypted.",
     points: [
       {
         title: "Offered, never forced",
@@ -206,8 +206,8 @@ export const en = {
   developers: {
     eyebrow: "For developers",
     title: "Build on the same core.",
-    lead: "Pochta's client is a real, reusable SDK. Build your own app on the same E2E core, or run your own network behind a different frontend. It ships no UI and no database — you inject those.",
-    install: "npm i @pochta-chat/sdk",
+    lead: "Vox's client is a real, reusable SDK. Build your own app on the same E2E core, or run your own network behind a different frontend. It ships no UI and no database — you inject those.",
+    install: "npm i @elementaio/vox-sdk",
     codeCaption: "The E2E core — identity, crypto, and transport. Storage and UI are yours.",
     features: [
       "Identity, sign-then-seal crypto, transport, and every message op",
@@ -233,7 +233,7 @@ export const en = {
   },
 
   footer: {
-    tagline: "почта — a post office, not an archive.",
+    tagline: "A post office, not an archive.",
     columns: {
       product: {
         title: "Product",
@@ -257,7 +257,7 @@ export const en = {
         links: [
           { label: "GitHub", href: "github" },
           { label: "MIT License", href: "license" },
-          { label: "pochta.uts.qa", href: "site" },
+          { label: "vox.uts.qa", href: "site" },
         ],
       },
     },

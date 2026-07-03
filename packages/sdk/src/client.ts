@@ -15,7 +15,7 @@ import type {
 } from "./types";
 
 /**
- * The Pochta messenger client. One persistent connection to the relay's inbox.
+ * The Vox messenger client. One persistent connection to the relay's inbox.
  *
  * Text is addressed to a CONTACT (their public key) and flows through the relay
  * inbox: delivered live when they're online, queued when they're not — always

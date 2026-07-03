@@ -1,8 +1,8 @@
 {
-  "name": "pochta-site",
+  "name": "vox-site",
   "version": "1.0.0",
   "private": true,
-  "description": "Marketing site for Pochta — pochta.uts.qa (Next.js App Router, bilingual EN/AR).",
+  "description": "Marketing site for Vox — vox.uts.qa (Next.js App Router, bilingual EN/AR).",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

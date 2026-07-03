@@ -1,5 +1,5 @@
 /**
- * Typed access to the desktop bridge (`window.pochta`, injected by the Electron
+ * Typed access to the desktop bridge (`window.vox`, injected by the Electron
  * preload). In a browser this is absent, so the web/mobile builds stay pure
  * clients — hosting is desktop-only. There is ONE role: a host helps run the
  * network (its own circle's sealed mail, and forwarding for big meetings when its
@@ -28,6 +28,6 @@ export interface DesktopBridge {
 
 /** The bridge if we're inside the desktop app, otherwise null (browser/mobile). */
 export function desktop(): DesktopBridge | null {
-  const w = globalThis as unknown as { pochta?: DesktopBridge };
-  return w.pochta?.isDesktop ? w.pochta : null;
+  const w = globalThis as unknown as { vox?: DesktopBridge };
+  return w.vox?.isDesktop ? w.vox : null;
 }

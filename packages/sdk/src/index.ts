@@ -1,7 +1,7 @@
 /**
- * @pochta-chat/sdk — the framework-agnostic client SDK for Pochta.
+ * @elementaio/vox-sdk — the framework-agnostic client SDK for Vox.
  *
- * Everything a client needs to speak the Pochta protocol: self-owned identity,
+ * Everything a client needs to speak the Vox protocol: self-owned identity,
  * end-to-end sign-then-seal crypto, the relay transport + message operations,
  * encrypted media, invites, and private-relay enrollment. It ships NO storage
  * engine and NO UI — a host supplies a `Store` (durable history), a `KVStore`

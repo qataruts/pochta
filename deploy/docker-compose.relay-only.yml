@@ -1,4 +1,4 @@
-# Pochta RELAY ONLY — the lean setup: run just the chat relay (own your data + E2E)
+# Vox RELAY ONLY — the lean setup: run just the chat relay (own your data + E2E)
 # and borrow a backbone for calls. Point TURN_URLS at any backbone's TURN
 # (content-blind, so E2E is intact), or uncomment coturn below to self-host it and
 # graduate to the full stack.
@@ -26,7 +26,7 @@ services:
     ports:
       - "4000:4000"
     volumes:
-      - pochta-data:/data
+      - vox-data:/data
     restart: unless-stopped
 
   # Uncomment to run your OWN TURN instead of relying on a provider (Linux host):
@@ -38,4 +38,4 @@ services:
   #   restart: unless-stopped
 
 volumes:
-  pochta-data:
+  vox-data:

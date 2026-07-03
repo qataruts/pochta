@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
-import { Vault, type Identity } from "@pochta-chat/sdk";
+import { Vault, type Identity } from "@elementaio/vox-sdk";
 import { kv } from "../services/storage";
 
 /** Session state: the unlocked identity + the on-device encrypted vault. */

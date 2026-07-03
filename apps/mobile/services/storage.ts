@@ -5,7 +5,7 @@ import type {
   Store,
   StoredContact,
   StoredMessage,
-} from "@pochta-chat/sdk";
+} from "@elementaio/vox-sdk";
 
 /**
  * On-device storage — the native adapters that plug the platform-agnostic SDK
@@ -15,7 +15,7 @@ import type {
  */
 
 // TODO(security): derive the encryptionKey from the OS keychain before shipping.
-const mmkv = createMMKV({ id: "pochta", encryptionKey: "pochta-mmkv-v1" });
+const mmkv = createMMKV({ id: "vox", encryptionKey: "vox-mmkv-v1" });
 
 /** KVStore for the SDK identity vault + device id + app settings (language, relay). */
 export const kv: KVStore = {

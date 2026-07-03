@@ -1,4 +1,4 @@
-# Pochta FULL STACK — own the whole thing on one server. This is what a provider
+# Vox FULL STACK — own the whole thing on one server. This is what a provider
 # runs AND what any developer/org runs to be fully independent:
 #   • relay   — the chat/signaling server (Elixir) + serves the web client
 #   • coturn  — STUN + TURN for calls (time-limited creds, shared secret)
@@ -32,7 +32,7 @@ services:
     ports:
       - "4000:4000"
     volumes:
-      - pochta-data:/data
+      - vox-data:/data
     restart: unless-stopped
 
   coturn:
@@ -47,4 +47,4 @@ services:
     restart: unless-stopped
 
 volumes:
-  pochta-data:
+  vox-data:

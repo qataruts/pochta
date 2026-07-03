@@ -31,9 +31,9 @@
     "wrongPassphrase": "Wrong passphrase."
   },
   "chat": {
-    "title": "Pochta",
+    "title": "Vox",
     "connectRelay": "Connect to a relay",
-    "relayHint": "Enter your Pochta server — the one your family, company, or provider runs.",
+    "relayHint": "Enter your Vox server — the one your family, company, or provider runs.",
     "relayPlaceholder": "chat.myfamily.com",
     "connect": "Connect",
     "addContactPlaceholder": "Paste an invite code to add a contact",

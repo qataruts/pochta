@@ -13,7 +13,7 @@
     "@noble/ciphers": "^2.2.0",
     "@noble/curves": "^2.2.0",
     "@noble/hashes": "^2.2.0",
-    "@pochta-chat/sdk": "workspace:*",
+    "@elementaio/vox-sdk": "workspace:*",
     "@scure/bip39": "^2.2.0",
     "i18next": "^26.3.4",
     "idb": "^8.0.3",

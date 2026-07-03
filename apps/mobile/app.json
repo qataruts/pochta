@@ -1,23 +1,23 @@
 {
   "expo": {
-    "name": "Pochta",
-    "slug": "pochta",
+    "name": "Vox",
+    "slug": "vox",
     "version": "0.1.0",
-    "scheme": "pochta",
+    "scheme": "vox",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "icon": "./assets/icon.png",
     "newArchEnabled": true,
     "ios": {
-      "bundleIdentifier": "qa.uts.pochta",
+      "bundleIdentifier": "qa.uts.vox",
       "supportsTablet": true,
       "infoPlist": {
-        "NSCameraUsageDescription": "Pochta uses the camera for video calls.",
-        "NSMicrophoneUsageDescription": "Pochta uses the microphone for voice and video calls."
+        "NSCameraUsageDescription": "Vox uses the camera for video calls.",
+        "NSMicrophoneUsageDescription": "Vox uses the microphone for voice and video calls."
       }
     },
     "android": {
-      "package": "qa.uts.pochta",
+      "package": "qa.uts.vox",
       "permissions": ["CAMERA", "RECORD_AUDIO", "INTERNET"]
     },
     "plugins": ["expo-router"],

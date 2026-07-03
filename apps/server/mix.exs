@@ -1,9 +1,9 @@
-defmodule Pochta.MixProject do
+defmodule Vox.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :pochta,
+      app: :vox,
       version: "0.1.0",
       elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -19,7 +19,7 @@ defmodule Pochta.MixProject do
   # Type `mix help compile.app` for more information.
   def application do
     [
-      mod: {Pochta.Application, []},
+      mod: {Vox.Application, []},
       extra_applications: [:logger, :runtime_tools]
     ]
   end

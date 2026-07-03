@@ -1,48 +1,48 @@
 <div align="center">
 
-# Pochta
+# Vox
 
 ### Private chat, voice & video — that you actually own.
 
-Pochta is a messaging app: chat and call your people, **end-to-end encrypted**, with
+Vox is a messaging app: chat and call your people, **end-to-end encrypted**, with
 **no phone number, no email, and no company in the middle.** Your account is a key on
 your device, and the network runs on people's own computers — so nobody can read you,
 lock you out, or shut it down. *(Your mail, not their archive.)*
 
-[![Website](https://img.shields.io/badge/website-pochta.uts.qa-E11D48)](https://pochta.uts.qa)
-[![npm](https://img.shields.io/npm/v/@pochta-chat/sdk?logo=npm&label=%40pochta-chat%2Fsdk&color=cb3837)](https://www.npmjs.com/package/@pochta-chat/sdk)
+[![Website](https://img.shields.io/badge/website-vox.uts.qa-E11D48)](https://vox.uts.qa)
+[![npm](https://img.shields.io/npm/v/@elementaio/vox-sdk?logo=npm&label=%40vox-chat%2Fsdk&color=cb3837)](https://www.npmjs.com/package/@elementaio/vox-sdk)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 ![Elixir](https://img.shields.io/badge/relay-Elixir%20%2F%20Phoenix-4B275F?logo=elixir&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/client-React%20%2F%20TypeScript-3178C6?logo=typescript&logoColor=white)
 ![End-to-end encrypted](https://img.shields.io/badge/encryption-end--to--end-2ea44f)
 
-**[Get the app → pochta.uts.qa](https://pochta.uts.qa)** · [For developers](#for-developers) · [Protocol](PROTOCOL.md) · [Architecture](ARCHITECTURE.md)
+**[Get the app → vox.uts.qa](https://vox.uts.qa)** · [For developers](#for-developers) · [Protocol](PROTOCOL.md) · [Architecture](ARCHITECTURE.md)
 
 </div>
 
 ---
 
-Pochta (почта — Russian for *post office*) is built on one idea: **a messenger's
+Vox (Latin for *voice*) is built on one idea: **a messenger's
 server should be a post office, not an archive.** It carries your sealed messages,
 delivers them, and forgets them. It never reads them, never keeps a history, and
 never knows who you are — because your account isn't a row in a database. It's a key
 on your device.
 
 The twist: **the post office isn't a company.** It's the desktops of the people using
-Pochta. Any desktop can host; small calls are pure peer-to-peer; big meetings borrow
+Vox. Any desktop can host; small calls are pure peer-to-peer; big meetings borrow
 capacity from a slice of the people in them. No central servers, no per-seat pricing —
 and because everything is end-to-end encrypted, a host only ever relays ciphertext.
 
-## Two ways to use Pochta
+## Two ways to use Vox
 
-Pochta is **a product for people** and **a toolkit for developers** — the same
+Vox is **a product for people** and **a toolkit for developers** — the same
 end-to-end core, two audiences.
 
 ### The product — apps you run
 
 | App | What it is | Hosts? |
 |-----|-----------|--------|
-| **Desktop** (Win/macOS/Linux) | your messenger **and** your on-ramp to the network — a client by default; flip **Host** on and it helps run Pochta | **yes** |
+| **Desktop** (Win/macOS/Linux) | your messenger **and** your on-ramp to the network — a client by default; flip **Host** on and it helps run Vox | **yes** |
 | **Web** | a lightweight client in the browser | no |
 | **Mobile** (iOS/Android) | a lightweight client in your pocket | no |
 
@@ -54,7 +54,7 @@ people host, the bigger and faster the network** — and every host is blind to 
 
 | Tool | What it's for |
 |------|---------------|
-| **[`@pochta-chat/sdk`](https://www.npmjs.com/package/@pochta-chat/sdk)** | the E2E client core (identity, crypto, transport, message ops) — build any app on it |
+| **[`@elementaio/vox-sdk`](https://www.npmjs.com/package/@elementaio/vox-sdk)** | the E2E client core (identity, crypto, transport, message ops) — build any app on it |
 | **Self-hostable relay** (Docker or a self-contained release) | run your own private network / island, and federate with others |
 
 If you just want a private messenger, use the product. If you want to build your own
@@ -63,7 +63,7 @@ chat network or app, use the tools. [Jump to the developer guide.](#for-develope
 ## Anyone can be the host — old Skype, done right
 
 Old Skype quietly turned users' machines into relays, then a company bought it and
-moved everything onto its own servers. Pochta brings back *"anyone can host"* — but
+moved everything onto its own servers. Vox brings back *"anyone can host"* — but
 **consented and encrypted**:
 
 - **One role, offered — never forced.** Your desktop hosts only if you allow it. When
@@ -88,10 +88,10 @@ moved everything onto its own servers. Pochta brings back *"anyone can host"* �
   across all of them.
 - **See presence** — who's online, who was last seen.
 
-## Why Pochta?
+## Why Vox?
 
 Every mainstream messenger asks you to trust a company: with your phone number, your
-contacts, your metadata, and a copy of your messages on their servers. Pochta removes
+contacts, your metadata, and a copy of your messages on their servers. Vox removes
 the company from the middle.
 
 - **Truly end-to-end.** Every message is signed by you and sealed to the recipient. A
@@ -145,13 +145,13 @@ Trust comes from being straight about the limits, so here they are:
 
 ## <a id="for-developers"></a>For developers
 
-Pochta's client is a real, reusable SDK — **[`@pochta-chat/sdk`](https://www.npmjs.com/package/@pochta-chat/sdk)** —
+Vox's client is a real, reusable SDK — **[`@elementaio/vox-sdk`](https://www.npmjs.com/package/@elementaio/vox-sdk)** —
 so you can build your *own* app (mobile, desktop, a bot) on the same E2E core, or run
 your backend behind a different frontend entirely. It ships no UI and no database; you
 inject those.
 
 ```sh
-npm i @pochta-chat/sdk
+npm i @elementaio/vox-sdk
 ```
 
 - **SDK** — identity, sign-then-seal crypto, transport, all message ops → [`packages/sdk`](packages/sdk)
@@ -166,10 +166,10 @@ public host for a community. (Regular users don't need this; they use the deskto
 One Docker image bundles the relay, the web client, and its storage:
 
 ```sh
-docker build -t pochta-relay .
-docker run -p 4000:4000 -v pochta-data:/data \
+docker build -t vox-relay .
+docker run -p 4000:4000 -v vox-data:/data \
   -e SECRET_KEY_BASE=$(openssl rand -base64 48) \
-  pochta-relay
+  vox-relay
 # open http://localhost:4000
 ```
 
@@ -177,16 +177,16 @@ Want a **private, invite-only network** for a company or org? Same image, three 
 vars — a sealed island where only enrolled people connect and nothing leaks out:
 
 ```sh
-docker run -p 4000:4000 -v pochta-data:/data \
+docker run -p 4000:4000 -v vox-data:/data \
   -e SECRET_KEY_BASE=$(openssl rand -base64 48) \
   -e MEMBERSHIP_MODE=invite -e FEDERATION_MODE=closed \
   -e ADMIN_TOKEN=$(openssl rand -hex 16) \
-  pochta-relay
+  vox-relay
 # open http://your-host/admin, sign in, and invite people from a friendly web panel.
 ```
 
 Runs on **Windows, macOS, or Linux**. Put a TLS proxy (Caddy/nginx) in front for
-anything beyond localhost. Relays can also **federate** — different self-hosted Pochta
+anything beyond localhost. Relays can also **federate** — different self-hosted Vox
 servers reach each other, signed and origin-verified, so separate islands become a
 network without any central authority.
 
@@ -197,13 +197,13 @@ starting point for your own branded client.
 
 ```
 packages/
-  sdk/        @pochta-chat/sdk — the shared client core (published to npm)
+  sdk/        @elementaio/vox-sdk — the shared client core (published to npm)
 apps/
-  server/     the Pochta relay (Elixir/Phoenix) — dev tool: the backend + serves web
+  server/     the Vox relay (Elixir/Phoenix) — dev tool: the backend + serves web
   web/        web client        (React + Vite)         — product: a client
   desktop/    desktop app       (Electron)             — product: client + Host
   mobile/     mobile client     (Expo / React Native)  — product: a client
-  site/       the marketing site (static, pochta.uts.qa)
+  site/       the marketing site (static, vox.uts.qa)
 deploy/       compose files + coturn config (self-host the relay + STUN/TURN)
 scripts/      launchers (run the release)
 ```
@@ -232,7 +232,7 @@ plus a **Host** panel that runs the bundled relay on your machine; packaging nex
 **mobile** ([Expo](apps/mobile) — onboarding + messenger on-device). Web and mobile are
 clients; the desktop is the one that hosts.
 
-**The tools (developer):** **[`@pochta-chat/sdk`](packages/sdk)** (published) ·
+**The tools (developer):** **[`@elementaio/vox-sdk`](packages/sdk)** (published) ·
 self-hostable relay (Docker + self-contained release).
 
 **Roadmap:** package the desktop/mobile apps · **group conferences** — a P2P mesh, a
@@ -255,12 +255,12 @@ Build it once (needs Elixir), then a regular host just runs the launcher — it
 generates + persists a secret and keeps all data in one folder:
 
 ```sh
-cd apps/server && MIX_ENV=prod mix release      # → _build/prod/rel/pochta (copy this anywhere)
+cd apps/server && MIX_ENV=prod mix release      # → _build/prod/rel/vox (copy this anywhere)
 
 # run it — no Elixir/Node needed on the target machine:
-./scripts/pochta-server.sh                       # http://localhost:4000, data in ~/.pochta
-PORT=8080 ADMIN_TOKEN=$(openssl rand -hex 16) ./scripts/pochta-server.sh   # admin panel on
-#   Windows: scripts\pochta-server.bat
+./scripts/vox-server.sh                       # http://localhost:4000, data in ~/.vox
+PORT=8080 ADMIN_TOKEN=$(openssl rand -hex 16) ./scripts/vox-server.sh   # admin panel on
+#   Windows: scripts\vox-server.bat
 ```
 
 Put a TLS reverse proxy (Caddy/nginx) in front for anything off-localhost — WebRTC
@@ -282,9 +282,9 @@ nothing extra. The actual call **media** is peer-to-peer WebRTC, so:
   so you need a **TURN** server (coturn) to relay the encrypted media. This is the
   current gap; without TURN those specific calls won't connect.
 
-The Pochta relay does **not** itself speak STUN/TURN — that's separate WebRTC infra
+The Vox relay does **not** itself speak STUN/TURN — that's separate WebRTC infra
 (**coturn**), which the *same host* can run. The relay just advertises whatever you
-configure via `GET /config` (`config :pochta, :ice_servers, [...]`), so nothing is
+configure via `GET /config` (`config :vox, :ice_servers, [...]`), so nothing is
 hardcoded to the outside world.
 </details>
 
@@ -316,7 +316,7 @@ members, and allow/revoke federated peers. Disabled entirely when no token is se
 mix relay.token                     # mint a one-time join token
 mix relay.members [add|remove <pubkey>]
 mix relay.peers   [allow <origin>|revoke <pubkey>]
-# release equivalents: bin/pochta rpc "Pochta.Admin.mint_token()"
+# release equivalents: bin/vox rpc "Vox.Admin.mint_token()"
 ```
 </details>
 

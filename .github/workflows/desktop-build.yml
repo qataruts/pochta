@@ -1,4 +1,4 @@
-# Builds the Pochta desktop app (client + bundled relay for the Host toggle) into
+# Builds the Vox desktop app (client + bundled relay for the Host toggle) into
 # installers on native per-OS/arch runners — so each bundle's Elixir release matches
 # its platform. macos-13 = Intel (x64), macos-14 = Apple Silicon (arm64).
 #
@@ -29,13 +29,13 @@ jobs:
           # re-add `{os: macos-13, builder: --mac --x64}` when a runner is available.
           - os: macos-14 # Apple Silicon
             builder: --mac --arm64
-            artifact: pochta-desktop-mac-arm64
+            artifact: vox-desktop-mac-arm64
           - os: windows-latest
             builder: --win --x64
-            artifact: pochta-desktop-windows
+            artifact: vox-desktop-windows
           - os: ubuntu-latest
             builder: --linux --x64
-            artifact: pochta-desktop-linux
+            artifact: vox-desktop-linux
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4

@@ -1,16 +1,16 @@
 {
-  "name": "@pochta-chat/sdk",
+  "name": "@elementaio/vox-sdk",
   "version": "0.1.1",
-  "description": "Framework-agnostic client SDK for Pochta — self-owned identity, end-to-end sign-then-seal crypto, relay transport, message ops, calls, and media. Ships no storage engine and no UI; you inject those.",
+  "description": "Framework-agnostic client SDK for Vox — self-owned identity, end-to-end sign-then-seal crypto, relay transport, message ops, calls, and media. Ships no storage engine and no UI; you inject those.",
   "type": "module",
   "license": "MIT",
-  "keywords": ["pochta", "e2e", "chat", "webrtc", "ed25519", "x25519", "sdk"],
+  "keywords": ["vox", "e2e", "chat", "webrtc", "ed25519", "x25519", "sdk"],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/elementaio/vox.git",
     "directory": "packages/sdk"
   },
-  "homepage": "https://pochta.uts.qa",
+  "homepage": "https://vox.uts.qa",
   "bugs": "https://github.com/elementaio/vox/issues",
   "sideEffects": false,
   "exports": {

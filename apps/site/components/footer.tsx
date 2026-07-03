@@ -15,9 +15,9 @@ export function Footer({ lang, dict }: { lang: Locale; dict: Dictionary }) {
       <div className="container">
         <div className="footer-top">
           <div className="footer-brand">
-            <a className="brand" href={`/${lang}`} aria-label="Pochta">
+            <a className="brand" href={`/${lang}`} aria-label="Vox">
               <Logo size={30} className="brand-mark" />
-              <span>Pochta</span>
+              <span>Vox</span>
             </a>
             <p className="footer-tagline">{dict.footer.tagline}</p>
           </div>

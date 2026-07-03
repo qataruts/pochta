@@ -6,7 +6,7 @@ import {
   type Identity,
   type StoredContact,
   type StoredMessage,
-} from "@pochta-chat/sdk";
+} from "@elementaio/vox-sdk";
 import { getContacts, getMessages, kv, store } from "../services/storage";
 
 const RELAY_KEY = "chat.relay.v1";

@@ -1,10 +1,10 @@
-# Pochta protocol
+# Vox protocol
 
-*Version 1.* This is the wire contract between a **Pochta client** and a **Pochta
+*Version 1.* This is the wire contract between a **Vox client** and a **Vox
 relay** — enough to write your own client (any language) or audit ours. The
-reference implementation is [`@pochta-chat/sdk`](apps/web/src/sdk) (TypeScript).
+reference implementation is [`@elementaio/vox-sdk`](apps/web/src/sdk) (TypeScript).
 
-Pochta's model: the relay is a **post office, not an archive**. It carries sealed
+Vox's model: the relay is a **post office, not an archive**. It carries sealed
 envelopes and holds them only until delivery (then GC). It never sees plaintext,
 never keeps history. All content security lives in the client — which is why a
 client is not "dumb": it holds the keys and does the crypto described here.

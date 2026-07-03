@@ -4,7 +4,7 @@ defmodule Mix.Tasks.Relay.Token do
   use Mix.Task
 
   def run(_args) do
-    Pochta.Release.boot_repo()
-    IO.puts(Pochta.Admin.mint_token())
+    Vox.Release.boot_repo()
+    IO.puts(Vox.Admin.mint_token())
   end
 end

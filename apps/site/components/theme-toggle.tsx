@@ -13,7 +13,7 @@ export function ThemeToggle({ label }: { label: string }) {
     el.classList.toggle("dark", next);
     el.style.colorScheme = next ? "dark" : "light";
     try {
-      localStorage.setItem("pochta-theme", next ? "dark" : "light");
+      localStorage.setItem("vox-theme", next ? "dark" : "light");
     } catch {
       /* ignore */
     }

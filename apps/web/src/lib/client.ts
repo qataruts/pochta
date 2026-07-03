@@ -1,5 +1,5 @@
-import { Client as SdkClient } from "@pochta-chat/sdk";
-import type { ClientEvents, Identity } from "@pochta-chat/sdk";
+import { Client as SdkClient } from "@elementaio/vox-sdk";
+import type { ClientEvents, Identity } from "@elementaio/vox-sdk";
 import { store } from "./db";
 import { httpBase } from "./server";
 import { deviceId } from "./identity";
@@ -22,4 +22,4 @@ export class Client extends SdkClient {
   }
 }
 
-export type { CallState, PresenceInfo } from "@pochta-chat/sdk";
+export type { CallState, PresenceInfo } from "@elementaio/vox-sdk";

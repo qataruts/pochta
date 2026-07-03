@@ -1,4 +1,4 @@
-# Pochta — architecture & design
+# Vox — architecture & design
 
 Technical deep-dive (the README is the product overview). Companion doc:
 [PROTOCOL.md](PROTOCOL.md) (the client/relay wire contract). This doc is written to
@@ -15,7 +15,7 @@ double as an LLM context document — paste it in and you can reason about the s
   (public — Docker builds fetch it with no tokens; bump the tag for updates).
 - **Storage**: Ecto adapters implementing the engine's ports, over **SQLite**
   (`ecto_sqlite3`, default) or **Postgres** (`postgrex`). Chosen by config.
-- **Client SDK**: [`@pochta-chat/sdk`](packages/sdk) — framework- & storage-agnostic
+- **Client SDK**: [`@elementaio/vox-sdk`](packages/sdk) — framework- & storage-agnostic
   TypeScript (identity, crypto, transport, ops). Published to npm.
 - **Web client**: React + Vite + TypeScript, consuming the SDK.
 - **Crypto (client)**: `@noble/curves` (ed25519 + x25519), `@noble/ciphers`
@@ -28,7 +28,7 @@ double as an LLM context document — paste it in and you can reason about the s
 
 ```
 ┌─────────────── device (browser / later desktop+mobile) ───────────────┐
-│ React UI  ─consumes→  @pochta-chat/sdk                                  │
+│ React UI  ─consumes→  @elementaio/vox-sdk                                  │
 │  identity   vault (passphrase→AES-GCM), Ed25519+X25519 keys             │
 │  crypto     sign-then-seal envelopes                                    │
 │  client     ONE socket → inbox channel; all app logic                  │
@@ -62,7 +62,7 @@ path. Calls then establish direct WebRTC media.
 ## Repo map
 
 ```
-packages/sdk/     @pochta-chat/sdk — framework- & storage-agnostic client core
+packages/sdk/     @elementaio/vox-sdk — framework- & storage-agnostic client core
   src/            (published to npm; the web app consumes it via alias)
     crypto.ts       seal()/open() — sign-then-seal (pure)
     identity.ts     keys, 12-word phrase, Vault(kv) — encrypted vault + device id
@@ -78,15 +78,15 @@ apps/web/src/
     server.ts       relay URL selection (self-host)  ·  invite.ts / enroll.ts wrap SDK with httpBase()
   Welcome.tsx Unlock.tsx Messenger.tsx App.tsx AdminPanel.tsx   UI
 apps/server/lib/
-  pochta_web/channels/user_socket.ex     signature auth
-  pochta_web/channels/inbox_channel.ex   the mailbox (+ call signaling)
-  pochta_web/engine_transport.ex         engine → channel bridge
-  pochta_web/controllers/*.ex            blobs, config, federation, membership, admin, page
-  pochta/ports/db/*.ex                   Ecto port adapters (SQLite/PG)
-  pochta/federation*.ex                  signed relay-to-relay forwarding + policy
-  pochta/membership.ex, admin.ex         guarded membership + admin facade
-  pochta/retention.ex                    delivery-buffer GC
-  pochta/release.ex                      schema migrations + boot
+  vox_web/channels/user_socket.ex     signature auth
+  vox_web/channels/inbox_channel.ex   the mailbox (+ call signaling)
+  vox_web/engine_transport.ex         engine → channel bridge
+  vox_web/controllers/*.ex            blobs, config, federation, membership, admin, page
+  vox/ports/db/*.ex                   Ecto port adapters (SQLite/PG)
+  vox/federation*.ex                  signed relay-to-relay forwarding + policy
+  vox/membership.ex, admin.ex         guarded membership + admin facade
+  vox/retention.ex                    delivery-buffer GC
+  vox/release.ex                      schema migrations + boot
   (chat_engine — git dependency, pinned by tag; no vendored copy)
 ```
 
@@ -103,7 +103,7 @@ apps/server/lib/
   messages are immutable + id'd + `seq`-ordered, merges are conflict-free.
 - **Storage behind ports** — SQLite for plug-and-play self-host, Postgres for
   scale, zero code change (proves `chat_engine`'s design).
-- **Client SDK, not a coupled app.** All client logic lives in `@pochta-chat/sdk`
+- **Client SDK, not a coupled app.** All client logic lives in `@elementaio/vox-sdk`
   with storage/transport injected — so third parties build their own apps on the
   same E2E core (see [PROTOCOL.md](PROTOCOL.md)).
 

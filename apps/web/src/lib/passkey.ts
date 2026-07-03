@@ -1,4 +1,4 @@
-import { restoreIdentity, type Identity } from "@pochta-chat/sdk";
+import { restoreIdentity, type Identity } from "@elementaio/vox-sdk";
 
 /**
  * Optional hardware-backed unlock for the web app, via WebAuthn's `prf` extension.
@@ -79,8 +79,8 @@ export async function registerPasskey(pubkey: string, name: string, mnemonic: st
   const salt = rand(32);
   const cred = (await navigator.credentials.create({
     publicKey: {
-      rp: { id: location.hostname, name: "Pochta" },
-      user: { id: fromHex(pubkey), name: name || pubkey.slice(0, 8), displayName: name || "Pochta" },
+      rp: { id: location.hostname, name: "Vox" },
+      user: { id: fromHex(pubkey), name: name || pubkey.slice(0, 8), displayName: name || "Vox" },
       challenge: rand(32),
       pubKeyCredParams: [
         { type: "public-key", alg: -7 },

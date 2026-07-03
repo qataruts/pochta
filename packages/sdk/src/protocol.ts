@@ -1,5 +1,5 @@
 /**
- * Wire-protocol constants shared by every Pochta client and the relay. Kept in
+ * Wire-protocol constants shared by every Vox client and the relay. Kept in
  * one place so a third-party client (or a non-JS port) has a single source of
  * truth. The human-readable spec is PROTOCOL.md at the repo root.
  */

@@ -1,5 +1,5 @@
-import { Vault, createIdentity, restoreIdentity, VAULT_PREFIX } from "@pochta-chat/sdk";
-import type { AccountRef, Identity, KVStore } from "@pochta-chat/sdk";
+import { Vault, createIdentity, restoreIdentity, VAULT_PREFIX } from "@elementaio/vox-sdk";
+import type { AccountRef, Identity, KVStore } from "@elementaio/vox-sdk";
 
 /**
  * Browser binding for the SDK vault. Account seeds (the `chat.vault.*` keys) are
@@ -12,7 +12,7 @@ type SecureStore = {
   set(k: string, v: string): void;
   remove(k: string): void;
 };
-const secure = (globalThis as { pochta?: { secureStore?: SecureStore } }).pochta?.secureStore;
+const secure = (globalThis as { vox?: { secureStore?: SecureStore } }).vox?.secureStore;
 const isVault = (k: string) => k.startsWith(VAULT_PREFIX);
 
 const kv: KVStore = {

@@ -1,14 +1,14 @@
 import Config
 
 # SQLite file for the contract test-kit (separate DB from dev).
-config :pochta, Pochta.Repo,
-  database: Path.expand("../pochta_test.db", __DIR__),
+config :vox, Vox.Repo,
+  database: Path.expand("../vox_test.db", __DIR__),
   journal_mode: :wal,
   pool_size: 5
 
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
-config :pochta, PochtaWeb.Endpoint,
+config :vox, VoxWeb.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: 4002],
   secret_key_base: "VCnX1nihLmnDMhd8NaMXfXtIL6NwaP6w8FjmSB4Ar/wVUY55gSgBXPu5Yx4k2Zq9",
   server: false

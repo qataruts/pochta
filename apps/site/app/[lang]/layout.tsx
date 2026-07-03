@@ -27,15 +27,15 @@ export async function generateMetadata({
     metadataBase: new URL(SITE_URL),
     title: dict.meta.title,
     description: dict.meta.description,
-    applicationName: "Pochta",
+    applicationName: "Vox",
     authors: [{ name: "Emad Jumaah" }],
     keywords: [
-      "Pochta",
+      "Vox",
       "encrypted messenger",
       "end-to-end encryption",
       "self-hosted chat",
       "federated messenger",
-      "@pochta-chat/sdk",
+      "@elementaio/vox-sdk",
       "private video calls",
     ],
     alternates: {
@@ -48,7 +48,7 @@ export async function generateMetadata({
     },
     openGraph: {
       type: "website",
-      siteName: "Pochta",
+      siteName: "Vox",
       url: SITE_URL + path,
       title: dict.meta.title,
       description: dict.meta.description,

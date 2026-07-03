@@ -205,7 +205,7 @@ apps/
   mobile/     mobile client     (Expo / React Native)  — product: a client
   site/       the marketing site (static, pochta.uts.qa)
 deploy/       compose files + coturn config (self-host the relay + STUN/TURN)
-scripts/      launchers (run the release) + vendor-engine
+scripts/      launchers (run the release)
 ```
 
 ### Develop locally

@@ -10,8 +10,9 @@ double as an LLM context document — paste it in and you can reason about the s
   HTTP surface for media blobs + serving the SPA). Bandit server.
 - **Messaging core**: **`chat_engine`** — a separate Elixir library providing
   ordering (gap-free `seq`), per-device cursors, exactly-once catch-up, presence,
-  fan-out, and clustering behind pluggable *ports*. Vendored into the repo
-  (`apps/server/vendor/chat_engine`) so builds need no external paths.
+  fan-out, and clustering behind pluggable *ports*. Pinned by tag as a git
+  dependency from [github.com/elementaio/engine](https://github.com/elementaio/engine)
+  (public — Docker builds fetch it with no tokens; bump the tag for updates).
 - **Storage**: Ecto adapters implementing the engine's ports, over **SQLite**
   (`ecto_sqlite3`, default) or **Postgres** (`postgrex`). Chosen by config.
 - **Client SDK**: [`@pochta-chat/sdk`](packages/sdk) — framework- & storage-agnostic
@@ -86,7 +87,7 @@ apps/server/lib/
   pochta/membership.ex, admin.ex         guarded membership + admin facade
   pochta/retention.ex                    delivery-buffer GC
   pochta/release.ex                      schema migrations + boot
-  vendor/chat_engine                     the messaging engine (vendored)
+  (chat_engine — git dependency, pinned by tag; no vendored copy)
 ```
 
 ## Key design decisions (the "why")

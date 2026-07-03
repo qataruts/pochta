@@ -7,11 +7,11 @@
   "keywords": ["pochta", "e2e", "chat", "webrtc", "ed25519", "x25519", "sdk"],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/qataruts/pochta.git",
+    "url": "git+https://github.com/elementaio/vox.git",
     "directory": "packages/sdk"
   },
   "homepage": "https://pochta.uts.qa",
-  "bugs": "https://github.com/qataruts/pochta/issues",
+  "bugs": "https://github.com/elementaio/vox/issues",
   "sideEffects": false,
   "exports": {
     ".": {

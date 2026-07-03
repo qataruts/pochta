@@ -46,10 +46,9 @@ defmodule Pochta.MixProject do
       {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
       # Durable messaging core: ordering, seq, cursors, offline catch-up, presence.
-      # Vendored into the repo (apps/server/vendor/chat_engine) so `docker build`
-      # and `git clone && run` work with no external paths. Re-sync upstream with
-      # scripts/vendor-engine.sh.
-      {:chat_engine, path: "vendor/chat_engine"},
+      # The messaging core, pinned by tag from the org repo (public — Docker
+      # builds fetch it with no tokens). Bump the tag to take engine updates.
+      {:chat_engine, git: "https://github.com/elementaio/engine.git", tag: "v0.1.0"},
       # Durable engine-port adapters live in the body. Dialect-agnostic (Ecto),
       # so the SAME adapters run on SQLite (default, plug-and-play, on disk) or
       # Postgres (scale) — selected by config.

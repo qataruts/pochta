@@ -2,7 +2,7 @@
 #
 # One-command self-host: builds the web client and the Elixir relay into a
 # single small image. `docker build` needs no Elixir/Node/pnpm on the host and
-# no external paths — chat_engine is vendored under apps/server/vendor.
+# no external paths — chat_engine is fetched by tag from github.com/elementaio/engine.
 #
 #   docker build -t pochta-relay .
 #   docker run -p 4000:4000 -v chat-data:/data \
@@ -41,9 +41,8 @@ WORKDIR /app
 ENV MIX_ENV=prod
 RUN mix local.hex --force && mix local.rebar --force
 
-# Deps first (cached until mix.exs/lock or the vendored engine change).
+# Deps first (cached until mix.exs/lock change).
 COPY apps/server/mix.exs apps/server/mix.lock ./
-COPY apps/server/vendor vendor
 RUN mix deps.get --only prod
 # config before deps.compile: some deps read compile-time config (Mix convention).
 COPY apps/server/config config

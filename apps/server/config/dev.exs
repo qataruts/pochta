@@ -6,6 +6,7 @@ import Config
 config :vox, Vox.Repo,
   database: Path.expand("../vox_dev.db", __DIR__),
   journal_mode: :wal,
+  busy_timeout: 5_000,
   pool_size: 5
 
 # For development, we disable any cache and enable

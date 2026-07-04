@@ -15,21 +15,27 @@ defmodule Vox.Ports.Db.Persistence do
 
   @impl true
   def append(conversation_id, %Message{} = msg) do
-    txn(fn ->
-      case existing_seq(conversation_id, msg.id) do
-        nil ->
-          next = (max_seq(conversation_id) || 0) + 1
-          insert!(conversation_id, msg, next)
-          next
+    retry_on_busy(fn ->
+      txn(fn ->
+        case existing_seq(conversation_id, msg.id) do
+          nil ->
+            next = (max_seq(conversation_id) || 0) + 1
+            insert!(conversation_id, msg, next)
+            next
 
-        seq ->
-          seq
-      end
+          seq ->
+            seq
+        end
+      end)
     end)
   end
 
   @impl true
   def append(conversation_id, %Message{} = msg, expected_seq) when is_integer(expected_seq) do
+    retry_on_busy(fn -> do_append_fenced(conversation_id, msg, expected_seq) end)
+  end
+
+  defp do_append_fenced(conversation_id, msg, expected_seq) do
     Repo.transaction(fn ->
       case existing_seq(conversation_id, msg.id) do
         seq when is_integer(seq) ->
@@ -96,6 +102,31 @@ defmodule Vox.Ports.Db.Persistence do
   rescue
     e -> {:error, e}
   end
+
+  # SQLite returns "database busy"/"locked" when concurrent writers contend for the
+  # write lock (a read→write upgrade races, which busy_timeout can't wait out). The
+  # engine serializes writes per conversation, so this is rare — retry a few times
+  # so a contended fence resolves cleanly (commit or {:fenced, _}) instead of
+  # surfacing a raw busy error. No-op on Postgres (never returns busy).
+  defp retry_on_busy(fun, attempts \\ 8) do
+    case fun.() do
+      {:error, e} = err when attempts > 1 ->
+        if busy_error?(e) do
+          Process.sleep(:rand.uniform(8))
+          retry_on_busy(fun, attempts - 1)
+        else
+          err
+        end
+
+      other ->
+        other
+    end
+  end
+
+  defp busy_error?(%{message: m}) when is_binary(m),
+    do: String.contains?(m, "usy") or String.contains?(m, "ocked")
+
+  defp busy_error?(_), do: false
 
   defp existing_seq(conversation_id, id) do
     Repo.one(

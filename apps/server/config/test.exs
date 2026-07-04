@@ -4,6 +4,9 @@ import Config
 config :vox, Vox.Repo,
   database: Path.expand("../vox_test.db", __DIR__),
   journal_mode: :wal,
+  # Wait for the write lock under contention instead of erroring "database busy"
+  # — concurrent writers to a contested seq must fence cleanly, not fail.
+  busy_timeout: 5_000,
   pool_size: 5
 
 # We don't run a server during test. If one is required,

@@ -68,6 +68,7 @@ if config_env() == :prod do
   config :vox, Vox.Repo,
     database: System.get_env("DATABASE_PATH") || "/data/chat.db",
     journal_mode: :wal,
+    busy_timeout: 5_000,
     pool_size: String.to_integer(System.get_env("POOL_SIZE") || "5")
 
   config :vox, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")

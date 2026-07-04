@@ -59,3 +59,6 @@ config :phoenix, :stacktrace_depth, 20
 
 # Initialize plugs at runtime for faster development compilation
 config :phoenix, :plug_init_mode, :runtime
+
+# Local federation tests hit localhost origins — allow the SSRF guard to pass.
+config :vox, :federation_allow_private_origins, true

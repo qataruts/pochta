@@ -14,19 +14,18 @@ defmodule Vox.Application do
       # Durable store for the engine's ports (SQLite on disk by default), then
       # run pending migrations before serving.
       Vox.Repo,
-      %{
-        id: :migrate,
-        start: {Task, :start_link, [&Vox.Release.migrate/0]},
-        restart: :transient
-      },
+      # Run pending migrations SYNCHRONOUSLY here (returns :ignore, so it isn't
+      # supervised — but the supervisor blocks on its start), so nothing after it
+      # (Endpoint, federation, retention) serves against a half-migrated schema.
+      %{id: :migrate, start: {Vox.Release, :migrate_sync, []}, restart: :temporary},
       # Periodically drop expired messages (bounded delivery buffer).
       Vox.Retention,
       # Relay's own signing keypair (federation identity).
       Vox.RelayIdentity,
       # Retries relay-to-relay forwards until the peer relay is reachable.
       Vox.Federation,
-      # Per-peer rate limit on inbound federation pushes (anti-flood).
-      Vox.Federation.RateLimiter,
+      # Generic per-minute rate limiter (client channel + inbound federation).
+      Vox.RateLimiter,
       # Start to serve requests, typically the last entry
       VoxWeb.Endpoint
     ]

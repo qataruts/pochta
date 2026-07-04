@@ -20,6 +20,10 @@ defmodule Vox.Federation do
 
   @max_attempts 12
   @max_backoff_ms 5 * 60 * 1000
+  # A claimed outbox row is leased for this long so the immediate-send Task and the
+  # periodic sweeper can't both post it (double-delivery).
+  @lease_ms 30_000
+  @sweep_concurrency 10
 
   # ── public API ────────────────────────────────────────────────────────────
 
@@ -71,31 +75,58 @@ defmodule Vox.Federation do
     {:noreply, state}
   end
 
-  @doc "Retry every due outbox row."
+  @doc "Retry every due outbox row — concurrently, so one slow/unreachable peer
+  doesn't head-of-line-block the rest (each row is claimed first, so this never
+  races the immediate-send Task)."
   def sweep(now \\ now()) do
     Repo.all(
       from o in "federation_outbox",
         where: o.next_attempt_ts <= ^now,
         limit: 200,
-        select: %{id: o.id, relay: o.relay, payload: o.payload, attempts: o.attempts}
+        select: o.id
     )
-    |> Enum.each(&attempt/1)
+    |> Task.async_stream(&deliver/1,
+      max_concurrency: @sweep_concurrency,
+      timeout: 10_000,
+      on_timeout: :kill_task
+    )
+    |> Stream.run()
   end
 
   # ── internals ─────────────────────────────────────────────────────────────
 
   defp deliver(id) do
-    case Repo.one(
-           from o in "federation_outbox",
-             where: o.id == ^id,
-             select: %{id: o.id, relay: o.relay, payload: o.payload, attempts: o.attempts}
-         ) do
-      nil -> :ok
-      row -> attempt(row)
+    case claim(id) do
+      {:ok, row} -> settle(row)
+      :taken -> :ok
     end
   end
 
-  defp attempt(%{id: id, relay: relay, payload: payload, attempts: attempts}) do
+  # Atomically lease a due row so no other worker (sweeper or immediate Task) can
+  # also send it. Only the update that flips next_attempt_ts wins (SQLite/PG
+  # serialize writes); the loser sees 0 rows and backs off.
+  defp claim(id) do
+    {n, _} =
+      Repo.update_all(
+        from(o in "federation_outbox", where: o.id == ^id and o.next_attempt_ts <= ^now()),
+        set: [next_attempt_ts: now() + @lease_ms]
+      )
+
+    if n == 1 do
+      {:ok,
+       Repo.one(
+         from o in "federation_outbox",
+           where: o.id == ^id,
+           select: %{id: o.id, relay: o.relay, payload: o.payload, attempts: o.attempts}
+       )}
+    else
+      :taken
+    end
+  end
+
+  defp settle(nil), do: :ok
+
+  defp settle(%{id: id, relay: relay, payload: payload, attempts: attempts}) do
     url = relay <> "/federation/push"
 
     case post(url, payload) do

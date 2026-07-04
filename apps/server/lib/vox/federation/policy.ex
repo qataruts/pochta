@@ -52,15 +52,62 @@ defmodule Vox.Federation.Policy do
   defp verify_origin(_pubkey, ""), do: :error
 
   defp verify_origin(pubkey, origin) do
-    url = String.trim_trailing(origin, "/") <> "/federation/identity"
-
-    case Req.get(url, retry: false, receive_timeout: 5_000) do
-      {:ok, %{status: 200, body: %{"relay_pubkey" => ^pubkey}}} -> :ok
+    with true <- safe_origin?(origin),
+         url = String.trim_trailing(origin, "/") <> "/federation/identity",
+         {:ok, %{status: 200, body: %{"relay_pubkey" => ^pubkey}}} <-
+           Req.get(url, retry: false, redirect: false, receive_timeout: 5_000) do
+      :ok
+    else
       _ -> :error
     end
   rescue
     _ -> :error
   end
+
+  # Guard the origin reverse-fetch against SSRF: only http(s) to a PUBLIC host.
+  # Blocks loopback/private/link-local/ULA targets (127.0.0.1, 169.254/16,
+  # 10|172.16|192.168, ::1, fc00::/7, fe80::/10) and redirects. Operators can
+  # allow private origins for local federation testing via config.
+  # (Residual: DNS-rebinding TOCTOU — Req re-resolves; acceptable for a v1 guard.)
+  defp safe_origin?(origin) when is_binary(origin) do
+    case URI.parse(origin) do
+      %URI{scheme: s, host: h} when s in ["http", "https"] and is_binary(h) and h != "" ->
+        allow_private?() or public_host?(h)
+
+      _ ->
+        false
+    end
+  end
+
+  defp safe_origin?(_), do: false
+
+  defp allow_private?, do: Application.get_env(:vox, :federation_allow_private_origins, false)
+
+  defp public_host?(host) do
+    charlist = String.to_charlist(host)
+
+    resolved =
+      case :inet.getaddr(charlist, :inet) do
+        {:ok, ip} -> {:ok, ip}
+        _ -> :inet.getaddr(charlist, :inet6)
+      end
+
+    case resolved do
+      {:ok, ip} -> not private_ip?(ip)
+      _ -> false
+    end
+  end
+
+  defp private_ip?({10, _, _, _}), do: true
+  defp private_ip?({127, _, _, _}), do: true
+  defp private_ip?({0, _, _, _}), do: true
+  defp private_ip?({169, 254, _, _}), do: true
+  defp private_ip?({192, 168, _, _}), do: true
+  defp private_ip?({172, b, _, _}) when b >= 16 and b <= 31, do: true
+  defp private_ip?({0, 0, 0, 0, 0, 0, 0, 1}), do: true
+  defp private_ip?({a, _, _, _, _, _, _, _}) when a >= 0xFC00 and a <= 0xFDFF, do: true
+  defp private_ip?({a, _, _, _, _, _, _, _}) when a >= 0xFE80 and a <= 0xFEBF, do: true
+  defp private_ip?(_), do: false
 
   defp policy, do: Application.get_env(:vox, :federation_policy, :open)
 
@@ -69,15 +116,14 @@ defmodule Vox.Federation.Policy do
 
   @doc "Operator action: trust a peer by ORIGIN — fetches + binds its key."
   def allow_origin(origin) do
-    url = String.trim_trailing(origin, "/") <> "/federation/identity"
-
-    case Req.get(url, retry: false, receive_timeout: 5_000) do
-      {:ok, %{status: 200, body: %{"relay_pubkey" => pub}}} ->
-        record(pub, origin)
-        {:ok, pub}
-
-      _ ->
-        :error
+    with true <- safe_origin?(origin),
+         url = String.trim_trailing(origin, "/") <> "/federation/identity",
+         {:ok, %{status: 200, body: %{"relay_pubkey" => pub}}} <-
+           Req.get(url, retry: false, redirect: false, receive_timeout: 5_000) do
+      record(pub, origin)
+      {:ok, pub}
+    else
+      _ -> :error
     end
   rescue
     _ -> :error

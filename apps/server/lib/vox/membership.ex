@@ -49,11 +49,19 @@ defmodule Vox.Membership do
     token
   end
 
-  @doc "Redeem a token for `pubkey` (single-use, atomic). Returns :ok or :error."
+  @doc """
+  Redeem a token for `pubkey` (single-use, atomic, and time-limited). Returns
+  :ok or :error. A token older than the TTL can no longer be redeemed, so a
+  leaked-but-unused token doesn't stay valid forever.
+  """
   def redeem(token, pubkey) do
+    cutoff = now() - ttl_ms()
+
     {count, _} =
       Repo.update_all(
-        from(t in "enroll_tokens", where: t.token == ^token and is_nil(t.used_ts)),
+        from(t in "enroll_tokens",
+          where: t.token == ^token and is_nil(t.used_ts) and t.created_ts > ^cutoff
+        ),
         set: [used_ts: now(), used_by: pubkey]
       )
 
@@ -64,6 +72,9 @@ defmodule Vox.Membership do
       :error
     end
   end
+
+  # Enroll tokens expire after this window (default 7 days).
+  defp ttl_ms, do: Application.get_env(:vox, :enroll_token_ttl_ms, 7 * 24 * 60 * 60 * 1000)
 
   defp now, do: System.system_time(:millisecond)
 end

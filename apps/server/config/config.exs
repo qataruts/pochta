@@ -63,6 +63,30 @@ config :vox, :federation_mode, :open
 # (anti-flood; a signed-but-compromised peer can't drown an inbox). Excess → 429.
 config :vox, :federation_rate_limit, 120
 
+# Per-source-IP inbound federation cap, applied BEFORE any signature check or the
+# origin reverse-fetch — so key rotation can't bypass it and it shields the fetch.
+config :vox, :federation_ip_rate_limit, 240
+
+# SSRF guard: only reverse-fetch federation origins on PUBLIC hosts. Set true to
+# permit private/loopback origins for LOCAL federation testing (dev/test do).
+config :vox, :federation_allow_private_origins, false
+
+# Client-channel per-socket per-minute caps (flood protection). `send` defaults
+# high because call signaling bursts ICE candidates; `presence` is a cheaper cap
+# and `presence_max` bounds a single query's fan-out.
+config :vox, :channel_send_rate, 1200
+config :vox, :channel_presence_rate, 240
+config :vox, :presence_max, 256
+
+# The (unauthenticated) blob endpoints are capped per source IP per minute so an
+# anonymous client can't fill the disk (bypassing the private-relay gate).
+config :vox, :blob_upload_rate, 60
+config :vox, :blob_download_rate, 600
+
+# Enroll tokens expire after this many ms (default 7 days) — a leaked-but-unused
+# token doesn't stay valid forever.
+config :vox, :enroll_token_ttl_ms, 604_800_000
+
 # Membership: :open (anyone with a valid keypair) or :invite (only pubkeys
 # enrolled via an admin-issued token — a guarded/private network).
 config :vox, :membership_mode, :open

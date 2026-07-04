@@ -15,6 +15,18 @@ defmodule Vox.Release do
     :ok
   end
 
+  @doc """
+  Boot-time migration as a supervision child: runs migrations synchronously, then
+  returns `:ignore` (so the supervisor doesn't keep it around but DOES wait for it
+  before starting later children like the Endpoint). If a migration raises, the
+  supervisor's start fails and the relay refuses to boot — correct: never serve
+  against a half-migrated schema.
+  """
+  def migrate_sync do
+    migrate()
+    :ignore
+  end
+
   @doc "Start just the Repo (+ deps) for CLI tasks — no endpoint, safe alongside a running server."
   def boot_repo do
     Logger.configure(level: :warning)

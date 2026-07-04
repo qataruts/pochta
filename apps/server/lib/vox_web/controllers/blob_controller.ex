@@ -15,18 +15,27 @@ defmodule VoxWeb.BlobController do
 
   # POST /blobs  (multipart: field "file" = ciphertext)
   def upload(conn, %{"file" => %Plug.Upload{path: path}}) do
-    data = File.read!(path)
+    cond do
+      # Per-source-IP cap: the endpoint is unauthenticated, so without a bound any
+      # anon can fill the disk (bypassing the private-relay gate). Rate limit +
+      # the size cap + retention together bound it.
+      not Vox.RateLimiter.allow?({:blob_up, client_ip(conn)}, upload_limit()) ->
+        rate_limited(conn)
 
-    if byte_size(data) > @max_bytes do
-      conn |> put_status(413) |> json(%{error: "too large"})
-    else
-      id = Base.url_encode64(:crypto.strong_rand_bytes(18), padding: false)
+      true ->
+        data = File.read!(path)
 
-      Repo.insert_all("blobs", [
-        %{id: id, data: data, inserted_ts: System.system_time(:millisecond)}
-      ])
+        if byte_size(data) > @max_bytes do
+          conn |> put_status(413) |> json(%{error: "too large"})
+        else
+          id = Base.url_encode64(:crypto.strong_rand_bytes(18), padding: false)
 
-      json(conn, %{id: id})
+          Repo.insert_all("blobs", [
+            %{id: id, data: data, inserted_ts: System.system_time(:millisecond)}
+          ])
+
+          json(conn, %{id: id})
+        end
     end
   end
 
@@ -34,14 +43,29 @@ defmodule VoxWeb.BlobController do
 
   # GET /blobs/:id  → raw ciphertext
   def download(conn, %{"id" => id}) do
-    case Repo.one(from b in "blobs", where: b.id == ^id, select: b.data) do
-      nil ->
-        conn |> put_status(404) |> json(%{error: "not found"})
+    if not Vox.RateLimiter.allow?({:blob_down, client_ip(conn)}, download_limit()) do
+      rate_limited(conn)
+    else
+      case Repo.one(from b in "blobs", where: b.id == ^id, select: b.data) do
+        nil ->
+          conn |> put_status(404) |> json(%{error: "not found"})
 
-      data ->
-        conn
-        |> put_resp_content_type("application/octet-stream")
-        |> send_resp(200, data)
+        data ->
+          conn
+          |> put_resp_content_type("application/octet-stream")
+          |> send_resp(200, data)
+      end
+    end
+  end
+
+  defp rate_limited(conn), do: conn |> put_status(429) |> json(%{error: "rate limited"})
+  defp upload_limit, do: Application.get_env(:vox, :blob_upload_rate, 60)
+  defp download_limit, do: Application.get_env(:vox, :blob_download_rate, 600)
+
+  defp client_ip(conn) do
+    case get_req_header(conn, "x-forwarded-for") do
+      [xff | _] -> xff |> String.split(",") |> hd() |> String.trim()
+      _ -> conn.remote_ip |> :inet.ntoa() |> to_string()
     end
   end
 end

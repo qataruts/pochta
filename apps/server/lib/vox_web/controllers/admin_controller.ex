@@ -87,9 +87,7 @@ defmodule VoxWeb.AdminController do
 
   # Bearer-token gate. `ping` (via any action) also lets the panel validate login.
   defp authorize(conn, _opts) do
-    admin = Application.get_env(:vox, :admin_token)
-
-    if is_binary(admin) and admin != "" and get_req_header(conn, "authorization") == ["Bearer " <> admin] do
+    if VoxWeb.Auth.admin?(conn) do
       conn
     else
       conn |> put_status(401) |> json(%{error: "unauthorized"}) |> halt()

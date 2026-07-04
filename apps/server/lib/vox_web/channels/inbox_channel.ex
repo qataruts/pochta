@@ -53,51 +53,69 @@ defmodule VoxWeb.InboxChannel do
   # relay is another server, forward there (federation); else deliver locally.
   @impl true
   def handle_in("send", %{"to" => to, "envelope" => envelope} = params, socket) do
-    id = Map.get(params, "id") || Vox.Delivery.random_id()
-    ephemeral = Map.get(params, "ephemeral", false)
-    relay = Map.get(params, "relay")
+    # Per-socket flood cap: one connected member can otherwise pin the writer /
+    # amplify federation with an unbounded send loop. The default is generous
+    # (call signaling bursts ICE candidates), so it only trips on pathological use.
+    if not Vox.RateLimiter.allow?({:send, socket.assigns.pubkey}, send_limit()) do
+      {:reply, {:error, %{reason: "rate_limited"}}, socket}
+    else
+      id = Map.get(params, "id") || Vox.Delivery.random_id()
+      ephemeral = Map.get(params, "ephemeral", false)
+      relay = Map.get(params, "relay")
 
-    status =
-      cond do
-        Vox.Federation.local?(relay) ->
-          case Vox.Delivery.deliver(to, socket.assigns.pubkey, envelope, id, ephemeral) do
-            {:ok, seq} -> seq
-            {:error, reason} -> %{error: inspect(reason)}
-          end
+      status =
+        cond do
+          Vox.Federation.local?(relay) ->
+            case Vox.Delivery.deliver(to, socket.assigns.pubkey, envelope, id, ephemeral) do
+              {:ok, seq} -> seq
+              {:error, reason} -> %{error: inspect(reason)}
+            end
 
-        # Fully-private relay: never send messages off the network.
-        Vox.Federation.closed?() ->
-          "federation_disabled"
+          # Fully-private relay: never send messages off the network.
+          Vox.Federation.closed?() ->
+            "federation_disabled"
 
-        true ->
-          Vox.Federation.forward(relay, %{
-            to: to,
-            from: socket.assigns.pubkey,
-            envelope: envelope,
-            id: id,
-            ephemeral: ephemeral
-          })
+          true ->
+            Vox.Federation.forward(relay, %{
+              to: to,
+              from: socket.assigns.pubkey,
+              envelope: envelope,
+              id: id,
+              ephemeral: ephemeral
+            })
 
-          "forwarded"
-      end
+            "forwarded"
+        end
 
-    {:reply, {:ok, %{status: status}}, socket}
+      {:reply, {:ok, %{status: status}}, socket}
+    end
   end
 
   # Presence query: online? / last-seen for a set of identities (the engine
   # tracks this via sessions; last_seen is recorded on disconnect).
   @impl true
   def handle_in("presence", %{"of" => pubkeys}, socket) when is_list(pubkeys) do
-    presence =
-      Map.new(pubkeys, fn pk ->
-        {pk,
-         case Chat.presence_of(pk) do
-           :online -> %{online: true, last_seen: nil}
-           {:offline, ts} -> %{online: false, last_seen: ts}
-         end}
-      end)
+    cond do
+      # Bound the fan-out: each key is a store lookup, so an unbounded list is a
+      # client-controlled work-amplification vector.
+      length(pubkeys) > presence_max() ->
+        {:reply, {:error, %{reason: "too_many"}}, socket}
 
-    {:reply, {:ok, %{presence: presence}}, socket}
+      not Vox.RateLimiter.allow?({:presence, socket.assigns.pubkey}, presence_limit()) ->
+        {:reply, {:error, %{reason: "rate_limited"}}, socket}
+
+      true ->
+        presence =
+          Map.new(pubkeys, fn pk ->
+            {pk,
+             case Chat.presence_of(pk) do
+               :online -> %{online: true, last_seen: nil}
+               {:offline, ts} -> %{online: false, last_seen: ts}
+             end}
+          end)
+
+        {:reply, {:ok, %{presence: presence}}, socket}
+    end
   end
 
   @impl true
@@ -107,4 +125,8 @@ defmodule VoxWeb.InboxChannel do
   end
 
   defp random_id, do: Base.encode16(:crypto.strong_rand_bytes(8), case: :lower)
+
+  defp send_limit, do: Application.get_env(:vox, :channel_send_rate, 1200)
+  defp presence_limit, do: Application.get_env(:vox, :channel_presence_rate, 240)
+  defp presence_max, do: Application.get_env(:vox, :presence_max, 256)
 end

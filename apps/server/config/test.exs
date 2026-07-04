@@ -22,3 +22,6 @@ config :phoenix, :plug_init_mode, :runtime
 # Sort query params output of verified routes for robust url comparisons
 config :phoenix,
   sort_verified_routes_query_params: true
+
+# Local federation tests hit localhost origins — allow the SSRF guard to pass.
+config :vox, :federation_allow_private_origins, true

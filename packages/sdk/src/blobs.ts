@@ -34,6 +34,11 @@ export async function encryptAndUpload(
   return { blobId: id, key: toHex(key) };
 }
 
+// A blob is E2E-encrypted media; cap the download so a malicious relay can't
+// OOM-crash the client by serving an enormous body (matches the relay's 25MB
+// upload cap, with headroom for the nonce + AEAD tag).
+const MAX_BLOB_BYTES = 30 * 1024 * 1024;
+
 /** Download the ciphertext for a blob and decrypt it with the hex key. */
 export async function downloadAndDecrypt(
   httpBase: string,
@@ -42,8 +47,45 @@ export async function downloadAndDecrypt(
 ): Promise<Uint8Array> {
   const res = await fetch(`${httpBase}/blobs/${blobId}`);
   if (!res.ok) throw new Error(`download failed: ${res.status}`);
-  const buf = new Uint8Array(await res.arrayBuffer());
+  const buf = await readCapped(res, MAX_BLOB_BYTES);
   const nonce = buf.slice(0, 24);
   const ct = buf.slice(24);
   return xchacha20poly1305(fromHex(keyHex), nonce).decrypt(ct);
+}
+
+// Read a response body with a hard byte cap — reject early on Content-Length and
+// stream-count as a fallback (a hostile server can omit/lie about the header).
+async function readCapped(res: Response, max: number): Promise<Uint8Array> {
+  const cl = res.headers.get("content-length");
+  if (cl && Number(cl) > max) throw new Error("blob too large");
+
+  const reader = res.body?.getReader?.();
+  if (!reader) {
+    const buf = new Uint8Array(await res.arrayBuffer());
+    if (buf.length > max) throw new Error("blob too large");
+    return buf;
+  }
+
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (value) {
+      total += value.length;
+      if (total > max) {
+        await reader.cancel();
+        throw new Error("blob too large");
+      }
+      chunks.push(value);
+    }
+  }
+
+  const out = new Uint8Array(total);
+  let off = 0;
+  for (const c of chunks) {
+    out.set(c, off);
+    off += c.length;
+  }
+  return out;
 }

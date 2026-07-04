@@ -76,7 +76,20 @@ export class PhoenixTransport implements Transport {
   }
 
   send(msg: Outbound): void {
-    this.inbox.push(EVENTS.send, msg);
+    this.pushSend(msg, 1);
+  }
+
+  // Push with delivery feedback: retry once on timeout and warn on rejection, so
+  // a dropped push isn't silently lost (the previous fire-and-forget swallowed
+  // relay errors and socket timeouts).
+  private pushSend(msg: Outbound, retries: number): void {
+    this.inbox
+      .push(EVENTS.send, msg)
+      .receive("error", (e) => console.warn("Vox: send rejected", e))
+      .receive("timeout", () => {
+        if (retries > 0) this.pushSend(msg, retries - 1);
+        else console.warn("Vox: send timed out");
+      });
   }
 
   queryPresence(pubkeys: string[], onResult: (rows: PresenceRow[]) => void): void {

@@ -8,9 +8,12 @@ import { fromBase64, toBase64 } from "./util";
  * you're on a different server) have their relay forward to yours. No central
  * directory: discovery info rides in the invite you share. `relay` is your home
  * relay's http base (the host passes it; the SDK doesn't assume where it runs).
- * Base64 via the util (no `btoa`/`atob`) so it works in RN too; the encoding is
- * byte-compatible with the previous `btoa` tokens.
+ * Base64 via the util (no `btoa`/`atob`) so it works in RN too.
  */
+
+const isHex64 = (s: unknown): s is string =>
+  typeof s === "string" && /^[0-9a-f]{64}$/i.test(s);
+
 export function inviteToken(id: Identity, relay: string): string {
   const json = JSON.stringify({
     p: id.publicKeyHex,
@@ -18,18 +21,32 @@ export function inviteToken(id: Identity, relay: string): string {
     n: id.name,
     r: relay, // home relay (http base)
   });
-  return toBase64(new TextEncoder().encode(encodeURIComponent(json)));
+  // URL-SAFE base64: the token is shared as a link / QR, where standard base64's
+  // `+` and `/` (and `=` padding) get corrupted by URL parsing. parseInvite
+  // accepts both this and legacy standard-base64 tokens.
+  return toBase64(new TextEncoder().encode(encodeURIComponent(json)))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
 }
 
 export function parseInvite(token: string): StoredContact | null {
   try {
-    const o = JSON.parse(decodeURIComponent(new TextDecoder().decode(fromBase64(token))));
-    if (!o.p || !o.e) return null;
+    // Accept url-safe or standard base64 (restore the alphabet + padding).
+    let b64 = String(token).replace(/-/g, "+").replace(/_/g, "/");
+    while (b64.length % 4) b64 += "=";
+    const o = JSON.parse(decodeURIComponent(new TextDecoder().decode(fromBase64(b64))));
+
+    // Validate before trusting: the identity + encryption keys are 32-byte
+    // (64 hex char) values — reject anything malformed instead of adding a
+    // broken/unusable contact.
+    if (!isHex64(o.p) || !isHex64(o.e)) return null;
+
     return {
       pubkey: o.p,
       enc: o.e,
-      name: o.n || o.p.slice(0, 6),
-      relay: o.r,
+      name: typeof o.n === "string" && o.n.trim() ? o.n.slice(0, 80) : o.p.slice(0, 6),
+      relay: typeof o.r === "string" ? o.r : undefined,
       addedAt: Date.now(),
     };
   } catch {

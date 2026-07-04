@@ -58,9 +58,13 @@ export function deriveEncryptionKey(seed: Uint8Array): {
   return { priv, pubHex: toHex(x25519.getPublicKey(priv)) };
 }
 
-// Signed bytes and the KDF must be byte-for-byte identical on both sides.
-const signedBytes = (from: string, ts: number, body: unknown): Uint8Array =>
-  enc.encode(JSON.stringify({ from, ts, body }));
+// Signed bytes and the KDF must be byte-for-byte identical on both sides. The
+// RECIPIENT's encryption pubkey (`to`) is bound into the signature so a message
+// authored for one recipient can't be re-sealed verbatim to a different one and
+// still verify — closing surreptitious forwarding / cross-conversation forgery.
+// `to` is not transmitted; the opener re-derives it from its own identity.
+const signedBytes = (from: string, to: string, ts: number, body: unknown): Uint8Array =>
+  enc.encode(JSON.stringify({ from, to, ts, body }));
 
 const deriveKey = (
   shared: Uint8Array,
@@ -76,7 +80,7 @@ export function seal(
   body: unknown,
   ts: number,
 ): SealedEnvelope {
-  const sig = ed25519.sign(signedBytes(senderPubHex, ts, body), senderSignSeed);
+  const sig = ed25519.sign(signedBytes(senderPubHex, recipientEncPubHex, ts, body), senderSignSeed);
   const plaintext = enc.encode(
     JSON.stringify({ from: senderPubHex, ts, body, sig: toHex(sig) }),
   );
@@ -117,7 +121,7 @@ export function open<T = unknown>(
 
   const ok = ed25519.verify(
     fromHex(obj.sig),
-    signedBytes(obj.from, obj.ts, obj.body),
+    signedBytes(obj.from, recipientEncPubHex, obj.ts, obj.body),
     fromHex(obj.from),
   );
   if (!ok) throw new Error("bad signature");

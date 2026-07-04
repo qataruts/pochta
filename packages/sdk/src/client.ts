@@ -167,6 +167,9 @@ export class Client {
       onEnvelope: (env) => this.handleEnvelope(env),
       onStatus: (s) => this.events.onStatus(s),
       onReady: () => {
+        // onReady re-fires on every Phoenix rejoin — clear any prior interval so
+        // reconnects don't stack duplicate presence pollers.
+        if (this.presenceTimer) clearInterval(this.presenceTimer);
         this.pollPresence();
         this.presenceTimer = setInterval(() => this.pollPresence(), 20000);
       },
@@ -1041,6 +1044,13 @@ export class Client {
 
     const from = opened.from;
     const body = opened.body;
+
+    // A signed peer still controls the body's shape; validate it before dispatch
+    // so a malformed payload can't throw off `switch (body.t)` or a handler.
+    if (!body || typeof body !== "object" || typeof (body as { t?: unknown }).t !== "string") {
+      console.warn("dropped a message with an invalid body");
+      return;
+    }
 
     switch (body.t) {
       case "msg":

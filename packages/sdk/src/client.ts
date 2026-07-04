@@ -1391,6 +1391,9 @@ export class Client {
   // --- helpers -----------------------------------------------------
 
   private sealTo(pubkey: string, enc: string, body: Body, id: string, ephemeral: boolean): void {
+    // A group has no single key to seal to (enc=""); per-contact ops like typing
+    // and receipts simply don't apply to it — skip rather than throw.
+    if (!enc) return;
     const envelope = seal(this.identity.privateKey, this.identity.publicKeyHex, enc, body, Date.now());
     // The recipient's home-relay hint (if on another server) so our relay can
     // forward there. Absent/same-relay ⇒ delivered locally.
@@ -1400,6 +1403,7 @@ export class Client {
 
   /** Seal to an explicit (enc, relay) — for group-call peers who may not be contacts. */
   private sealPeer(pubkey: string, enc: string, relay: string | undefined, body: Body, id: string, ephemeral: boolean): void {
+    if (!enc) return;
     const envelope = seal(this.identity.privateKey, this.identity.publicKeyHex, enc, body, Date.now());
     this.transport.send({ to: pubkey, envelope, id, ephemeral, relay: relay ?? this.contacts.get(pubkey)?.relay });
   }

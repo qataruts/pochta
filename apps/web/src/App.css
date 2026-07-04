@@ -461,6 +461,9 @@ button {
   height: 38px;
   font-size: 15px;
 }
+.avatar.group {
+  background: linear-gradient(145deg, #f0913e, #ffce8a);
+}
 .contact-main {
   flex: 1;
   min-width: 0;
@@ -725,6 +728,12 @@ button {
 .msg .tombstone {
   font-style: italic;
   opacity: 0.6;
+}
+.msg-sender {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 2px;
 }
 .msg .edited {
   font-size: 10px;

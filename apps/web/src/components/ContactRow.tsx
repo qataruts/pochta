@@ -1,6 +1,7 @@
 import type { StoredContact } from "../lib/db";
 import { time } from "../lib/format";
 import { useLocales } from "../locales";
+import { IconUsers } from "./icons";
 
 export interface Preview {
   text: string;
@@ -29,8 +30,10 @@ export function ContactRow({
   return (
     <button className={`contact ${active ? "active" : ""}`} onClick={onOpen}>
       <div className="avatar-wrap">
-        <div className="avatar">{c.name.slice(0, 1).toUpperCase()}</div>
-        {online && <span className="presence-dot" />}
+        <div className={`avatar ${c.isGroup ? "group" : ""}`}>
+          {c.isGroup ? <IconUsers width="22" height="22" /> : c.name.slice(0, 1).toUpperCase()}
+        </div>
+        {online && !c.isGroup && <span className="presence-dot" />}
       </div>
       <div className="contact-main">
         <div className="contact-top">

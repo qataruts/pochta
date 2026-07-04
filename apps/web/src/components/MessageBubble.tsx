@@ -30,6 +30,7 @@ export function MessageBubble({
         <span className="text tombstone">{t("chat.messageDeleted")}</span>
       ) : (
         <>
+          {!m.mine && m.fromName && <div className="msg-sender">{m.fromName}</div>}
           {m.replyTo && <div className="msg-quote">{quoteText(t, quoted)}</div>}
           {m.media && <MediaView media={m.media} client={client} />}
           {m.text && <span className="text">{m.text}</span>}

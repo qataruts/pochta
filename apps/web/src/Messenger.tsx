@@ -27,6 +27,7 @@ import {
   ContactRow,
   GroupCallOverlay,
   GroupCallStarter,
+  GroupChatStarter,
   MessageBubble,
   type Preview,
 } from "./components";
@@ -103,6 +104,7 @@ export default function Messenger({
   const [peers, setPeers] = useState<Record<string, { name: string; stream: MediaStream }>>({});
   const [groupActive, setGroupActive] = useState(false);
   const [groupStarterOpen, setGroupStarterOpen] = useState(false);
+  const [groupChatOpen, setGroupChatOpen] = useState(false);
 
   const clientRef = useRef<Client | null>(null);
   const activeRef = useRef<string | null>(null);
@@ -351,10 +353,31 @@ export default function Messenger({
     e.preventDefault();
     const text = draft.trim();
     if (!text || !active) return;
-    void clientRef.current?.sendText(active, text, replyingTo?.id);
+    const ac = contacts.find((c) => c.pubkey === active);
+    if (ac?.isGroup) void clientRef.current?.sendGroupText(active, text, replyingTo?.id);
+    else void clientRef.current?.sendText(active, text, replyingTo?.id);
     setDraft("");
     setReplyingTo(null);
     stopTyping();
+  }
+
+  async function createGroupChat(name: string, members: StoredContact[]) {
+    setGroupChatOpen(false);
+    const groupId = await clientRef.current?.createGroup(name, members);
+    if (groupId) openConversation(groupId);
+  }
+
+  // Start a call from the conversation header — a group call for a group, else 1:1.
+  function headerCall(video: boolean) {
+    if (!activeContact) return;
+    if (activeContact.isGroup) {
+      const pks = (activeContact.members ?? [])
+        .map((m) => m.pubkey)
+        .filter((pk) => pk !== identity.publicKeyHex);
+      beginGroupCall(pks, video);
+    } else {
+      void clientRef.current?.startCall(activeContact.pubkey, video);
+    }
   }
 
   function stopTyping() {
@@ -660,27 +683,41 @@ export default function Messenger({
           <>
             <header className="convo-header">
               <div className="avatar-wrap">
-                <div className="avatar">{activeContact.name.slice(0, 1).toUpperCase()}</div>
-                {presence[activeContact.pubkey]?.online && <span className="presence-dot" />}
+                <div className={`avatar ${activeContact.isGroup ? "group" : ""}`}>
+                  {activeContact.isGroup ? (
+                    <IconUsers width="20" height="20" />
+                  ) : (
+                    activeContact.name.slice(0, 1).toUpperCase()
+                  )}
+                </div>
+                {!activeContact.isGroup && presence[activeContact.pubkey]?.online && (
+                  <span className="presence-dot" />
+                )}
               </div>
               <div>
                 <div className="convo-name">{activeContact.name}</div>
-                <div className={`convo-sub ${presence[activeContact.pubkey]?.online ? "" : "off"}`}>
-                  {presenceText(t, presence[activeContact.pubkey])}
-                </div>
+                {activeContact.isGroup ? (
+                  <div className="convo-sub off">
+                    {t("chat.groupMembers", { n: activeContact.members?.length ?? 0 })}
+                  </div>
+                ) : (
+                  <div className={`convo-sub ${presence[activeContact.pubkey]?.online ? "" : "off"}`}>
+                    {presenceText(t, presence[activeContact.pubkey])}
+                  </div>
+                )}
               </div>
               <div className="call-buttons">
                 <button
                   title={t("chat.voiceCall")}
                   aria-label={t("chat.voiceCall")}
-                  onClick={() => clientRef.current?.startCall(activeContact.pubkey, false)}
+                  onClick={() => headerCall(false)}
                 >
                   <IconPhone width="21" height="21" />
                 </button>
                 <button
                   title={t("chat.videoCall")}
                   aria-label={t("chat.videoCall")}
-                  onClick={() => clientRef.current?.startCall(activeContact.pubkey, true)}
+                  onClick={() => headerCall(true)}
                 >
                   <IconVideo width="21" height="21" />
                 </button>
@@ -872,15 +909,15 @@ export default function Messenger({
                   className="grp-btn"
                   onClick={() => {
                     setAddOpen(false);
-                    setGroupStarterOpen(true);
+                    setGroupChatOpen(true);
                   }}
                 >
                   <span className="grp-ic">
                     <IconUsers width="24" height="24" />
                   </span>
                   <div>
-                    <b>{t("chat.newGroupCall")}</b>
-                    <span>{t("chat.newGroupCallSub")}</span>
+                    <b>{t("chat.newGroupChat")}</b>
+                    <span>{t("chat.newGroupChatSub")}</span>
                   </div>
                 </button>
               </div>
@@ -919,9 +956,17 @@ export default function Messenger({
 
       {groupStarterOpen && (
         <GroupCallStarter
-          contacts={contacts}
+          contacts={contacts.filter((c) => !c.isGroup)}
           onStart={beginGroupCall}
           onClose={() => setGroupStarterOpen(false)}
+        />
+      )}
+
+      {groupChatOpen && (
+        <GroupChatStarter
+          contacts={contacts.filter((c) => !c.isGroup)}
+          onCreate={createGroupChat}
+          onClose={() => setGroupChatOpen(false)}
         />
       )}
 

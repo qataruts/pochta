@@ -149,6 +149,19 @@
     "you": "You",
     "participants": "{{n}} in call"
   },
+  "meeting": {
+    "guest": "Guest",
+    "you": "You",
+    "readyTitle": "Ready to join?",
+    "yourName": "Your name",
+    "join": "Join meeting",
+    "copyLink": "Copy invite link",
+    "invite": "Invite",
+    "waiting": "Waiting for others to join…",
+    "e2eNote": "End-to-end encrypted. Anyone with the link can join — no account needed.",
+    "newMeeting": "New meeting",
+    "newMeetingSub": "Start a call and share a link — guests join with no account"
+  },
   "prompts": {
     "editMessage": "Edit message:",
     "deleteForEveryone": "Delete this message for everyone?",

@@ -193,6 +193,11 @@ export const IconServer = (p: P) => (
     <path d="M7 7.5h.01M7 16.5h.01" />
   </S>
 );
+export const IconLink = (p: P) => (
+  <S {...p}>
+    <path d="M9 15l6-6M10.5 6.5l1-1a4 4 0 0 1 6 6l-1 1M13.5 17.5l-1 1a4 4 0 0 1-6-6l1-1" />
+  </S>
+);
 export const IconLogout = (p: P) => (
   <S {...p}>
     <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l-5-5 5-5M5 12h11" />

@@ -14,6 +14,7 @@ import {
 import { type Identity } from "./lib/identity";
 import { hasPasskey, isPasskeySupported, registerPasskey } from "./lib/passkey";
 import { inviteLink, parseInvite } from "./lib/invite";
+import { newMeeting } from "./lib/meeting";
 import { serverLabel, setServer, socketUrl } from "./lib/server";
 import { enroll } from "./lib/enroll";
 import { useLocales } from "./locales";
@@ -53,9 +54,11 @@ import { currentTheme, toggleTheme, type Theme } from "./lib/theme";
 export default function Messenger({
   identity,
   onSignOut,
+  onStartMeeting,
 }: {
   identity: Identity;
   onSignOut: () => void;
+  onStartMeeting: (roomId: string) => void;
 }) {
   const { t, toggle } = useLocales();
   const [status, setStatus] = useState("connecting…");
@@ -748,6 +751,22 @@ export default function Messenger({
                 </div>
 
                 <div className="add-divider">{t("chat.or")}</div>
+
+                <button
+                  className="grp-btn"
+                  onClick={() => {
+                    setAddOpen(false);
+                    onStartMeeting(newMeeting());
+                  }}
+                >
+                  <span className="grp-ic">
+                    <IconVideo width="24" height="24" />
+                  </span>
+                  <div>
+                    <b>{t("meeting.newMeeting")}</b>
+                    <span>{t("meeting.newMeetingSub")}</span>
+                  </div>
+                </button>
 
                 <button
                   className="grp-btn"

@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createIdentity } from "@elementaio/vox-sdk";
 import {
   autoUnlock,
   clearSession,
@@ -10,9 +11,11 @@ import {
 } from "./lib/identity";
 import { removePasskey } from "./lib/passkey";
 import { setDbKey, deleteAccountData } from "./lib/db";
+import { meetingRoomFromUrl, clearMeetingUrl } from "./lib/meeting";
 import Welcome from "./Welcome";
 import Unlock from "./Unlock";
 import AccountPicker from "./AccountPicker";
+import Meeting from "./Meeting";
 import Messenger from "./Messenger";
 import AdminPanel from "./AdminPanel";
 import "./App.css";
@@ -44,6 +47,38 @@ function Main() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // A meeting link (`?meet=<id>`) takes over the whole screen — a signed-in user
+  // joins with their identity; a guest joins with a throwaway one (no account).
+  const [meetRoom, setMeetRoom] = useState<string | null>(meetingRoomFromUrl());
+  const guestRef = useRef<Identity | null>(null);
+  if (meetRoom) {
+    if (identity) {
+      return (
+        <Meeting
+          roomId={meetRoom}
+          identity={identity}
+          guest={false}
+          onExit={() => {
+            clearMeetingUrl();
+            setMeetRoom(null);
+          }}
+        />
+      );
+    }
+    if (!guestRef.current) guestRef.current = createIdentity();
+    return (
+      <Meeting
+        roomId={meetRoom}
+        identity={guestRef.current}
+        guest
+        onExit={() => {
+          clearMeetingUrl();
+          location.reload();
+        }}
+      />
+    );
+  }
+
   const accounts = listAccounts();
   void tick;
 
@@ -74,7 +109,17 @@ function Main() {
     setTick((t) => t + 1);
   }
 
-  if (identity) return <Messenger identity={identity} onSignOut={signOut} />;
+  if (identity)
+    return (
+      <Messenger
+        identity={identity}
+        onSignOut={signOut}
+        onStartMeeting={(id) => {
+          history.pushState(null, "", "?meet=" + id);
+          setMeetRoom(id);
+        }}
+      />
+    );
   if (adding || accounts.length === 0) {
     return <Welcome onReady={ready} onBack={accounts.length ? () => setAdding(false) : undefined} />;
   }

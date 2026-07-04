@@ -10,12 +10,25 @@
 
 export type MessageStatus = "sent" | "delivered" | "read";
 
+/** A member of a group chat: how to seal to + name them. */
+export interface GroupMember {
+  pubkey: string;
+  enc: string;
+  name: string;
+  relay?: string;
+}
+
 export interface StoredContact {
-  pubkey: string; // Ed25519 identity — the contact id
-  enc: string; // X25519 key we seal messages to
+  pubkey: string; // Ed25519 identity — the contact id (for a GROUP: the group id)
+  enc: string; // X25519 key we seal messages to (empty for a group)
   name: string;
   relay?: string; // home-relay hint (http base) for cross-server delivery
   addedAt: number;
+  // Group chats are stored like a contact, with a member roster. Messages fan out
+  // sealed per-member (full E2E), so the relay never sees a group any differently.
+  isGroup?: boolean;
+  members?: GroupMember[];
+  admin?: string; // group admin pubkey
 }
 
 export interface MediaRef {
@@ -28,8 +41,9 @@ export interface MediaRef {
 
 export interface StoredMessage {
   id: string;
-  contact: string; // the other party's pubkey (the conversation key)
+  contact: string; // the other party's pubkey (the conversation key; group id for groups)
   from: string; // sender pubkey
+  fromName?: string; // sender display name (set for group messages, to label bubbles)
   text: string;
   ts: number;
   mine: boolean;
@@ -96,7 +110,12 @@ export type Body =
   // Star/SFU attribution: the forwarder tells a participant which origin a relayed
   // stream belongs to (so it can label the tile). Sent just before the renegotiation
   // that adds that stream.
-  | { t: "call-fwd"; callId: string; streamId: string; from: string; name: string };
+  | { t: "call-fwd"; callId: string; streamId: string; from: string; name: string }
+  // Group chats (client-side groups, per-member E2E fan-out): `ginfo` shares/updates
+  // the roster (sent to each member); `gmsg` is a group message (sealed separately
+  // to every member). No relay change — these ride the normal sealed inbox.
+  | { t: "ginfo"; groupId: string; name: string; members: GroupMember[]; admin: string }
+  | { t: "gmsg"; groupId: string; id: string; text: string; name: string; enc: string; relay?: string; replyTo?: string };
 
 /** One participant in a group call: how to reach and name them. */
 export interface RosterEntry {

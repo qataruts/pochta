@@ -6,6 +6,7 @@ import { PhoenixTransport, type Transport } from "./transport";
 import type {
   Body,
   ClientEvents,
+  GroupMember,
   MediaBody,
   MediaRef,
   RosterEntry,
@@ -241,6 +242,92 @@ export class Client {
     this.seen.add(id);
     await this.store.addMessage(msg);
     this.events.onMessage(contact, msg);
+    return msg;
+  }
+
+  /**
+   * Create a group text chat. The group is stored like a contact (with a member
+   * roster) and every member gets a `ginfo` so they see the same group. Messages
+   * fan out sealed per-member, so it's full E2E with no group key and no relay
+   * change. Returns the new group id.
+   */
+  async createGroup(name: string, members: StoredContact[]): Promise<string> {
+    const groupId = randomId() + randomId();
+    const self: GroupMember = {
+      pubkey: this.identity.publicKeyHex,
+      enc: this.identity.encPublicKeyHex,
+      name: this.identity.name,
+      relay: this.httpBase,
+    };
+    const roster: GroupMember[] = [
+      self,
+      ...members.map((m) => ({ pubkey: m.pubkey, enc: m.enc, name: m.name, relay: m.relay })),
+    ];
+    const group: StoredContact = {
+      pubkey: groupId,
+      enc: "",
+      name,
+      addedAt: Date.now(),
+      isGroup: true,
+      members: roster,
+      admin: self.pubkey,
+    };
+    this.contacts.set(groupId, group);
+    await this.store.upsertContact(group);
+    this.events.onContact(group);
+    for (const m of members) {
+      this.sealPeer(
+        m.pubkey,
+        m.enc,
+        m.relay,
+        { t: "ginfo", groupId, name, members: roster, admin: self.pubkey },
+        `ginfo-${groupId}-${randomId()}`,
+        false,
+      );
+    }
+    return groupId;
+  }
+
+  /** Send a message to a group — sealed separately to each member (full E2E). */
+  async sendGroupText(groupId: string, text: string, replyTo?: string): Promise<StoredMessage | null> {
+    const g = this.contacts.get(groupId);
+    if (!g || !g.isGroup || !g.members) return null;
+    const id = randomId();
+    const ts = Date.now();
+    for (const m of g.members) {
+      if (m.pubkey === this.identity.publicKeyHex) continue;
+      this.sealPeer(
+        m.pubkey,
+        m.enc,
+        m.relay,
+        {
+          t: "gmsg",
+          groupId,
+          id,
+          text,
+          name: this.identity.name,
+          enc: this.identity.encPublicKeyHex,
+          relay: this.httpBase,
+          replyTo,
+        },
+        `gmsg-${id}-${m.pubkey.slice(0, 8)}`,
+        false,
+      );
+    }
+    const msg: StoredMessage = {
+      id,
+      contact: groupId,
+      from: this.identity.publicKeyHex,
+      fromName: this.identity.name,
+      text,
+      ts,
+      mine: true,
+      status: "sent",
+      replyTo,
+    };
+    this.seen.add(id);
+    await this.store.addMessage(msg);
+    this.events.onMessage(groupId, msg);
     return msg;
   }
 
@@ -1067,6 +1154,10 @@ export class Client {
         return this.onDelOp(from, body);
       case "react":
         return this.onReactOp(from, body);
+      case "ginfo":
+        return this.onGroupInfo(from, body);
+      case "gmsg":
+        return this.onGroupMsg(from, body, opened.ts);
       case "rcpt":
         await this.store.setMessageStatus(body.id, body.state);
         return this.events.onReceipt(from, body.id, body.state);
@@ -1221,6 +1312,43 @@ export class Client {
     if (await this.store.applyReaction(body.targetId, body.emoji, from, body.remove)) {
       await this.emitUpdated(body.targetId);
     }
+  }
+
+  // A group definition/update — accept only from someone actually in the roster.
+  private async onGroupInfo(from: string, body: Extract<Body, { t: "ginfo" }>): Promise<void> {
+    if (!body.members.some((m) => m.pubkey === from)) return;
+    const group: StoredContact = {
+      pubkey: body.groupId,
+      enc: "",
+      name: body.name,
+      addedAt: Date.now(),
+      isGroup: true,
+      members: body.members,
+      admin: body.admin,
+    };
+    this.contacts.set(body.groupId, group);
+    await this.store.upsertContact(group);
+    this.events.onContact(group);
+  }
+
+  // A group message — ignore unknown groups or non-members (anti-injection).
+  private async onGroupMsg(from: string, body: Extract<Body, { t: "gmsg" }>, ts: number): Promise<void> {
+    const g = this.contacts.get(body.groupId);
+    if (!g || !g.isGroup || !g.members?.some((m) => m.pubkey === from)) return;
+    if (this.seen.has(body.id)) return;
+    this.seen.add(body.id);
+    const msg: StoredMessage = {
+      id: body.id,
+      contact: body.groupId,
+      from,
+      fromName: body.name,
+      text: body.text,
+      ts,
+      mine: false,
+      replyTo: body.replyTo,
+    };
+    await this.store.addMessage(msg);
+    this.events.onMessage(body.groupId, msg);
   }
 
   private async onCallOffer(from: string, body: Extract<Body, { t: "call-offer" }>): Promise<void> {

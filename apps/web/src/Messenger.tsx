@@ -136,14 +136,21 @@ export default function Messenger({
           if (activeRef.current === contact) {
             setMessages((prev) => prev.map((m) => (m.id === msg.id ? msg : m)));
           }
-          setPreviews((prev) => ({
-            ...prev,
-            [contact]: {
-              text: msg.deleted ? tRef.current("chat.deletedShort") : msg.text,
-              ts: msg.ts,
-              mine: msg.mine,
-            },
-          }));
+          // Only refresh the sidebar preview when the changed message is at least
+          // as recent as what's shown — editing/reacting to an OLDER message must
+          // not clobber the newer last-message preview.
+          setPreviews((prev) => {
+            const cur = prev[contact];
+            if (cur && msg.ts < cur.ts) return prev;
+            return {
+              ...prev,
+              [contact]: {
+                text: msg.deleted ? tRef.current("chat.deletedShort") : msg.text,
+                ts: msg.ts,
+                mine: msg.mine,
+              },
+            };
+          });
         },
         onMessageRemoved: (contact, id) => {
           if (activeRef.current === contact) {
@@ -239,9 +246,23 @@ export default function Messenger({
     if (active) void clientRef.current?.react(active, m.id, emoji);
   }
 
-  async function onSearch(v: string) {
+  // Debounced search with a stale-result guard: searchMessages decrypts the whole
+  // store, so run it at most every 200ms and only apply the latest query's result.
+  const searchTimer = useRef<number | undefined>(undefined);
+  const searchSeq = useRef(0);
+  function onSearch(v: string) {
     setQuery(v);
-    setResults(v.trim() ? await searchMessages(v) : []);
+    window.clearTimeout(searchTimer.current);
+    if (!v.trim()) {
+      setResults([]);
+      return;
+    }
+    const seq = ++searchSeq.current;
+    searchTimer.current = window.setTimeout(() => {
+      void searchMessages(v).then((r) => {
+        if (seq === searchSeq.current) setResults(r);
+      });
+    }, 200);
   }
   const contactName = (pubkey: string) =>
     contacts.find((c) => c.pubkey === pubkey)?.name ?? pubkey.slice(0, 8);
